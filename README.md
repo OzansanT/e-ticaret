@@ -1,113 +1,77 @@
-# vinext-starter
+# Dr. Animal E‑Ticaret
 
-A clean full-stack starter running on
-[vinext](https://github.com/cloudflare/vinext), with optional Cloudflare D1 and
-Drizzle support.
+Dr. Animal için geliştirilen, mobil uyumlu pet bakım ürünleri mağazası. İlk sürüm; ürün keşfi, kategori filtreleme, arama, kalıcı sepet ve en avantajlı kampanyayı otomatik seçme akışına odaklanır.
 
-## Prerequisites
+## Şu anda neler var?
 
-- Node.js `>=22.13.0`
-- Linux with `flock`, `curl`, and GNU `timeout`
+- Türkçe, erişilebilir ve responsive mağaza arayüzü
+- Üst kampanya bandı ve ana navigasyon
+- Sol kategori alanı, ana ürün kataloğu ve sağ kampanya özeti
+- 75 ml–500 ml HOCl ürün boyları ve fiyat merdiveni
+- Anlık ürün arama ve kategori filtreleme
+- Tarayıcıda saklanan sepet; adet artırma, azaltma ve silme
+- Sepette `%10`, `2. üründe %25`, `600 TL üzeri 50 TL`, `3 ürün al %20` ve `4 al 2 öde` kampanyalarını karşılaştıran seçim motoru
+- Mobil kategori şeritleri ve sağdan açılan sepet paneli
+- Dr. Animal marka renkleriyle optimize edilmiş hero görseli
+- Türkçe SEO başlık ve açıklama verileri
 
-## Sites Lifecycle
+Ödeme düğmesi bu aşamada bilinçli olarak pasiftir. Gerçek ödeme, sipariş, stok ve müşteri hesabı akışları bir servis seçilmeden taklit edilmemiştir.
 
-The Sites lifecycle CLI runs the locked dependency install before returning this checkout. Edit the source under `app/`, then checkpoint when a coherent milestone is ready to inspect or share. The remote Sites builder runs `npm run build` against the pushed commit. Do not repeat install or build as a normal pre-checkpoint step.
+## Mimari
 
-This starter does not use `wrangler.jsonc`.
-
-`install:ci` is intentionally a single, non-retrying `npm ci`. It refuses a concurrent install for the same project, consumes a matching image-seeded npm cache with `--prefer-offline` while retaining registry fallback for a missing cache object, otherwise downloads and verifies the complete vinext tarball recorded in `package-lock.json`, limits npm to one socket, and terminates a stalled install. `build` applies a short timeout. These helpers target Linux and use GNU `timeout`; they are not native macOS scripts.
-
-Scripts that need writable project-scoped home, npm, XDG, and temporary paths use `scripts/sites-env.sh`. The `dev` and `start` scripts honor the caller's runtime environment and keep Wrangler logs inside the checkout. The generated `.sites-runtime/` directory is disposable and ignored by Git.
-
-## Included Shape
-
-- edit site code under `app/`
-- `app/chatgpt-auth.ts` provides optional dispatch-owned ChatGPT sign-in helpers
-- `.openai/hosting.json` declares optional Sites D1 and R2 bindings
-- `vite.config.ts` simulates declared bindings for local development
-- `db/index.ts` reads the D1 binding from the Cloudflare Worker environment
-- `db/schema.ts` starts intentionally empty
-- `examples/d1/` contains an optional D1 example surface
-- `drizzle.config.ts` supports local migration generation when needed
-
-## Workspace Auth Headers
-
-OpenAI workspace sites can read the current user's email from
-`oai-authenticated-user-email`.
-
-SIWC-authenticated workspace sites may also receive
-`oai-authenticated-user-full-name` when the user's SIWC profile has a non-empty
-`name` claim. The full-name value is percent-encoded UTF-8 and is accompanied by
-`oai-authenticated-user-full-name-encoding: percent-encoded-utf-8`.
-
-Treat the full name as optional and fall back to email when it is absent:
-
-```tsx
-import { headers } from "next/headers";
-
-export default async function Home() {
-  const requestHeaders = await headers();
-  const email = requestHeaders.get("oai-authenticated-user-email");
-  const encodedFullName = requestHeaders.get("oai-authenticated-user-full-name");
-  const fullName =
-    encodedFullName &&
-    requestHeaders.get("oai-authenticated-user-full-name-encoding") ===
-      "percent-encoded-utf-8"
-      ? decodeURIComponent(encodedFullName)
-      : null;
-
-  const displayName = fullName ?? email;
-  // ...
-}
+```text
+e-ticaret/
+├── app/
+│   ├── layout.tsx              # SEO ve sayfa kabuğu
+│   ├── page.tsx                # Ana giriş
+│   └── globals.css             # Tek CSS giriş noktası
+├── features/                   # Özellik becerileri
+│   ├── index.ts                # Tek özellik giriş noktası
+│   ├── storefront/
+│   │   └── storefront.tsx      # Navbar, aside'lar, ana bölümler, footer
+│   ├── catalog/
+│   │   ├── products.ts         # Ürün verisi
+│   │   └── product-grid.tsx    # Katalog bileşeni
+│   └── cart/
+│       ├── campaigns.js        # Saf kampanya motoru
+│       ├── cart-context.tsx    # Sepet durumu ve kalıcılık
+│       └── cart-sheet.tsx      # Sepet paneli
+├── styles/
+│   ├── main.css                # Tek CSS dağıtım noktası
+│   ├── tokens.css              # Renkler ve ölçüler
+│   ├── base.css                # Temel kurallar
+│   ├── layout.css              # Sayfa yerleşimi
+│   ├── components.css          # Ortak parçalar
+│   ├── responsive.css          # Responsive davranış
+│   └── features/               # Özellik bazlı stiller
+├── public/                     # Optimize edilmiş görseller
+└── tests/                      # Arayüz ve kampanya testleri
 ```
 
-## Optional Dispatch-Owned ChatGPT Sign-In
+`app/globals.css`, `styles/main.css` dosyasını yükler; `main.css` de tüm temel, düzen ve özellik stillerini dağıtır. `app/page.tsx`, `features/index.ts` üzerinden mağazayı yükler. Böylece CSS ve özellik kodu tek merkezden yönetilir.
 
-Import the ready-to-use helpers from `app/chatgpt-auth.ts` when the site needs
-optional or required ChatGPT sign-in:
+## Çalıştırma
 
-- Use `getChatGPTUser()` for optional signed-in UI.
-- Use `requireChatGPTUser(returnTo)` for server-rendered pages that should send
-  anonymous visitors through Sign in with ChatGPT.
-- In a Server Component, start sign-in with
-  `<a href={chatGPTSignInPath(returnTo)} target="_top">`. The auth helper
-  module is server-only; do not import it into a Client Component.
-- Do not use `fetch`, XHR, a client-side router, or a framework link that can
-  prefetch the sign-in route. SIWC must start as a top-level navigation.
-- Never request the AuthAPI authorization endpoint directly. The dispatch-owned
-  `/signin-with-chatgpt` route must start the SIWC flow.
-- Use `chatGPTSignOutPath(returnTo)` for browser sign-out links or actions.
-- Pass a same-origin relative `returnTo` path for the destination after sign-in
-  or sign-out. The helper validates and safely encodes it.
-- Mark protected pages with `export const dynamic = "force-dynamic"` because
-  they depend on per-request identity headers.
+Gereksinimler: Node.js `>=22.13.0`.
 
-Dispatch owns `/signin-with-chatgpt`, `/signout-with-chatgpt`, `/callback`, the
-OAuth cookies, and identity header injection. Do not implement app routes for
-those reserved paths. Routes that do not import and call the helper remain
-anonymous-compatible.
+```bash
+npm ci
+npm run dev
+```
 
-SIWC establishes identity only; it does not prove workspace membership. Use the
-Sites hosting platform's access policy controls for workspace-wide restrictions,
-or enforce explicit server-side membership or allowlist checks.
+Kalite kontrolleri:
 
-Use SIWC for account pages, user-specific dashboards, saved records, and write
-actions tied to the current ChatGPT user. Leave public content anonymous.
+```bash
+npm run lint
+npm test
+```
 
-## Diagnostic Commands
+## Sıradaki mantıklı geliştirmeler
 
-- `npm run install:ci`: perform the one bounded lockfile install
-- `npm run dev`: start the Vite/Vinext development server
-- `npm run build`: build the deployable Sites artifact
-- `npm run start`: start the built Vinext application
-- `npm test`: build and verify the rendered development-preview metadata
-- `npm run db:generate`: generate Drizzle migrations after schema changes
-
-Use build commands for targeted diagnosis after a remote failure, not as part of the normal checkpoint path.
-
-The timeout defaults can be overridden for a controlled canary with `SITES_INSTALL_TIMEOUT`, `SITES_INSTALL_KILL_AFTER`, `SITES_BUILD_TIMEOUT`, and `SITES_BUILD_KILL_AFTER`. A timeout fails the command; the helpers never retry an unchanged install or build.
-
-## Learn More
-
-- [vinext Documentation](https://github.com/cloudflare/vinext)
-- [Drizzle D1 Guide](https://orm.drizzle.team/docs/get-started/d1-new)
+1. Gerçek ürün fotoğrafları, SKU ve stok verisi
+2. Ödeme sağlayıcısı ve güvenli sipariş oluşturma
+3. Müşteri hesabı, adresler ve sipariş geçmişi
+4. PWA kurulumu, çevrimdışı katalog ve sepet kurtarma
+5. Kupon, sadakat, paylaşım/referral ve kampanya derin bağlantıları
+6. Analitik, dönüşüm olayları ve izin/tercih yönetimi
+7. Ürün detay sayfaları, bakım rehberleri ve yapılandırılmış SEO verisi
