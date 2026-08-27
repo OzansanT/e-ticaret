@@ -1,5 +1,5 @@
 @media (max-width: 1120px) {
-  .nav-shell { grid-template-columns: auto minmax(180px, 1fr) auto; }
+  .nav-shell { grid-template-columns: auto minmax(180px, 1fr) auto auto; }
   .desktop-nav { display: none; }
   .shop-layout { grid-template-columns: 170px minmax(0, 1fr); }
   .campaign-aside { display: none; }

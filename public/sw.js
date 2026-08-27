@@ -1,8 +1,9 @@
-const CACHE_VERSION = "lorem-store-v2";
+const CACHE_VERSION = "lorem-store-v3";
 const APP_SHELL = [
   "/",
   "/manifest.webmanifest",
   "/favicon.svg",
+  "/product-placeholder.svg",
 ];
 
 self.addEventListener("install", (event) => {
@@ -60,4 +61,30 @@ self.addEventListener("fetch", (event) => {
       ),
     );
   }
+});
+
+self.addEventListener("push", (event) => {
+  let payload = { title: "Lorem Ipsum", body: "Dolor sit amet consectetur.", url: "/" };
+  try {
+    if (event.data) payload = { ...payload, ...event.data.json() };
+  } catch {
+    if (event.data) payload.body = event.data.text();
+  }
+  event.waitUntil(self.registration.showNotification(payload.title, {
+    body: payload.body,
+    icon: "/favicon.svg",
+    badge: "/favicon.svg",
+    data: { url: payload.url || "/" },
+  }));
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+  const target = new URL(event.notification.data?.url || "/", self.location.origin).href;
+  event.waitUntil(
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((clients) => {
+      const existing = clients.find((client) => client.url === target);
+      return existing ? existing.focus() : self.clients.openWindow(target);
+    }),
+  );
 });

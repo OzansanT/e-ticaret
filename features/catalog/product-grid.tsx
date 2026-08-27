@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, Check, Plus } from "lucide-react";
+import { ArrowRight, Check, PackageCheck, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatPrice, type Product } from "./products";
 import { useCart } from "@/features/cart/cart-context";
@@ -31,14 +31,15 @@ export function ProductGrid({ products }: { products: Product[] }) {
           </div>
           <div className="product-card__visual">
             <span className="product-card__number">0{index + 1}</span>
-            <div className="product-card__label">
-              <small>LOREM IPSUM</small>
-              <strong>Dolor</strong>
-              <span>{product.size}</span>
-            </div>
+            {/* Merchant-managed R2 images are already optimized before upload. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={product.imageUrl} alt="" loading="lazy" />
           </div>
           <div className="product-card__body">
-            <span className="product-card__category">{product.category}</span>
+            <div className="product-card__meta">
+              <span className="product-card__category">{product.category}</span>
+              <span><PackageCheck aria-hidden="true" /> {product.sku}</span>
+            </div>
             <h3>{product.name}</h3>
             <p>{product.description}</p>
             <ul>
@@ -51,11 +52,15 @@ export function ProductGrid({ products }: { products: Product[] }) {
               <small>Lorem ipsum</small>
               <strong>{formatPrice(product.price)}</strong>
             </div>
-            <Button onClick={() => cart.add(product)} aria-label={`Add ${product.shortName}`}>
-              <Plus aria-hidden="true" /> Lorem ipsum
+            <Button
+              onClick={() => cart.add(product)}
+              aria-label={`Add ${product.shortName}`}
+              disabled={product.stock === 0}
+            >
+              <Plus aria-hidden="true" /> {product.stock === 0 ? "Dolor sit" : "Lorem ipsum"}
             </Button>
           </div>
-          <a className="product-card__details" href="#bakim-rehberi">
+          <a className="product-card__details" href={`/products/${product.slug}`}>
             Dolor sit amet <ArrowRight aria-hidden="true" />
           </a>
         </article>

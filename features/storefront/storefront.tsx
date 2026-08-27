@@ -6,17 +6,20 @@ import {
   BadgeCheck,
   HeartPulse,
   Menu,
+  UserRound,
   Search,
   ShieldCheck,
   Sparkles,
   Truck,
 } from "lucide-react";
-import { Toaster } from "@/components/ui/sonner";
 import { CartProvider, useCart } from "@/features/cart/cart-context";
 import { CartSheet } from "@/features/cart/cart-sheet";
 import { ProductGrid } from "@/features/catalog/product-grid";
-import { categories, products, type Category } from "@/features/catalog/products";
+import { categories, type Category, type Product } from "@/features/catalog/products";
+import type { CampaignRule } from "@/db/catalog";
 import { PwaRegister } from "@/features/pwa/pwa-register";
+import { CommerceTracker } from "@/features/engagement/commerce-tracker";
+import { NotificationOptIn } from "@/features/engagement/notification-opt-in";
 
 function Header({ search, setSearch }: { search: string; setSearch: (value: string) => void }) {
   return (
@@ -47,13 +50,16 @@ function Header({ search, setSearch }: { search: string; setSearch: (value: stri
           />
         </label>
         <CartSheet />
+        <a className="account-link" href="/account" aria-label="Lorem ipsum">
+          <UserRound aria-hidden="true" />
+        </a>
         <button className="mobile-menu" aria-label="Open menu"><Menu aria-hidden="true" /></button>
       </div>
     </header>
   );
 }
 
-function CategoryRail({ active, setActive }: { active: Category; setActive: (value: Category) => void }) {
+function CategoryRail({ active, setActive, catalog }: { active: Category; setActive: (value: Category) => void; catalog: Product[] }) {
   return (
     <aside className="category-rail" aria-label="Categories">
       <span className="rail-label">Lorem ipsum</span>
@@ -66,7 +72,7 @@ function CategoryRail({ active, setActive }: { active: Category; setActive: (val
             aria-pressed={active === category}
           >
             <span>{category}</span>
-            <small>{category === "Lorem" ? products.length : products.filter((product) => product.category === category).length}</small>
+            <small>{category === "Lorem" ? catalog.length : catalog.filter((product) => product.category === category).length}</small>
           </button>
         ))}
       </div>
@@ -106,12 +112,12 @@ function CampaignAside() {
   );
 }
 
-function StorefrontContent() {
+function StorefrontContent({ catalog }: { catalog: Product[] }) {
   const [category, setCategory] = useState<Category>("Lorem");
   const [search, setSearch] = useState("");
   const filteredProducts = useMemo(() => {
     const query = search.trim().toLocaleLowerCase("tr-TR");
-    return products.filter((product) => {
+    return catalog.filter((product) => {
       const matchesCategory = category === "Lorem" || product.category === category;
       const matchesSearch =
         !query ||
@@ -120,7 +126,7 @@ function StorefrontContent() {
           .includes(query);
       return matchesCategory && matchesSearch;
     });
-  }, [category, search]);
+  }, [catalog, category, search]);
 
   return (
     <div id="top">
@@ -156,7 +162,7 @@ function StorefrontContent() {
         </div>
 
         <div className="shop-layout">
-          <CategoryRail active={category} setActive={setCategory} />
+          <CategoryRail active={category} setActive={setCategory} catalog={catalog} />
           <section className="catalog-section" id="urunler" aria-labelledby="catalog-title">
             <div className="section-heading">
               <div>
@@ -185,15 +191,16 @@ function StorefrontContent() {
       <footer className="site-footer">
         <div className="footer-brand"><span className="brand__mark">◐</span><div><strong>Lorem Ipsum</strong><p>Dolor sit amet, consectetur adipiscing elit.</p></div></div>
         <div><strong>Lorem</strong><a href="#urunler">Ipsum dolor</a><a href="#kampanyalar">Sit amet</a></div>
-        <div><strong>Consectetur</strong><a href="#bakim-rehberi">Adipiscing elit</a><a href="mailto:lorem@example.com">Sed do eiusmod</a></div>
+        <div><strong>Consectetur</strong><a href="#bakim-rehberi">Adipiscing elit</a><a href="mailto:lorem@example.com">Sed do eiusmod</a><button className="footer-consent" onClick={() => window.dispatchEvent(new Event("commerce-open-consent"))}>Lorem ipsum</button></div>
         <p className="footer-note">© 2026 Lorem Ipsum. Dolor sit amet consectetur.</p>
       </footer>
-      <Toaster position="bottom-center" richColors />
+      <div className="notification-dock"><NotificationOptIn /></div>
+      <CommerceTracker />
       <PwaRegister />
     </div>
   );
 }
 
-export function Storefront() {
-  return <CartProvider><StorefrontContent /></CartProvider>;
+export function Storefront({ catalog, campaigns }: { catalog: Product[]; campaigns: CampaignRule[] }) {
+  return <CartProvider catalog={catalog} campaigns={campaigns}><StorefrontContent catalog={catalog} /></CartProvider>;
 }

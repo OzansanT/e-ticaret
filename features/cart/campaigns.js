@@ -3,7 +3,7 @@
  * Unit prices are supplied separately so quantity-based campaigns stay simple
  * and testable outside the interface.
  */
-export function selectBestCampaign(unitPrices, subtotal) {
+export function selectBestCampaign(unitPrices, subtotal, configuredRules = []) {
   const candidates = [
     {
       name: "Lorem ipsum %10",
@@ -45,6 +45,23 @@ export function selectBestCampaign(unitPrices, subtotal) {
       name: "Eiusmod tempor 4/2",
       discount: sorted[0] + sorted[1],
       message: "Excepteur sint occaecat cupidatat non proident.",
+    });
+  }
+
+  for (const rule of configuredRules) {
+    const meetsThreshold = subtotal >= Number(rule.threshold ?? 0);
+    const meetsQuantity = unitPrices.length >= Number(rule.minimumItems ?? 0);
+    if (!meetsThreshold || !meetsQuantity) continue;
+    let discount = 0;
+    if (rule.kind === "percentage") discount = subtotal * (Number(rule.value) / 100);
+    if (rule.kind === "fixed" || rule.kind === "threshold") discount = Number(rule.value);
+    if (rule.kind === "quantity" && unitPrices.length > 0) {
+      discount = [...unitPrices].sort((a, b) => a - b)[0] * (Number(rule.value) / 100);
+    }
+    candidates.push({
+      name: String(rule.name),
+      discount,
+      message: "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
     });
   }
 
