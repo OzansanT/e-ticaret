@@ -1,85 +1,39 @@
 import assert from "node:assert/strict";
-import { readdir, readFile } from "node:fs/promises";
-import path from "node:path";
-import test, { after } from "node:test";
-import { fileURLToPath } from "node:url";
+import { readFile } from "node:fs/promises";
+import test from "node:test";
 
-import React from "react";
-import { renderToStaticMarkup } from "react-dom/server";
-import { createServer } from "vite";
+const root = new URL("..", import.meta.url);
+const source = (path) => readFile(new URL(path, root), "utf8");
 
-const root = fileURLToPath(new URL("..", import.meta.url));
-const vite = await createServer({
-  appType: "custom",
-  configFile: false,
-  root,
-  resolve: { alias: { "@": root } },
-  server: { middlewareMode: true },
+test("keeps one centralized CSS import hierarchy", async () => {
+  const [globals, main] = await Promise.all([
+    source("app/globals.css"),
+    source("styles/main.css"),
+  ]);
+
+  assert.match(globals, /@import "\.\.\/styles\/main\.css"/);
+  assert.match(main, /@import "\.\/tokens\.css"/);
+  assert.match(main, /@import "\.\/features\/storefront\.css"/);
+  assert.match(main, /@import "\.\/features\/catalog\.css"/);
+  assert.match(main, /@import "\.\/features\/cart\.css"/);
+  assert.match(main, /@import "\.\/responsive\.css"/);
 });
 
-after(async () => {
-  await vite.close();
+test("keeps the requested storefront regions connected", async () => {
+  const storefront = await source("features/storefront/storefront.tsx");
+
+  assert.match(storefront, /<header className="site-header">/);
+  assert.match(storefront, /className="category-rail"/);
+  assert.match(storefront, /className="catalog-section"/);
+  assert.match(storefront, /className="campaign-aside"/);
+  assert.match(storefront, /<footer className="site-footer">/);
+  assert.match(storefront, /<CartSheet \/>/);
 });
 
-async function readCssTree(directory) {
-  const entries = await readdir(directory, { withFileTypes: true });
-  const contents = await Promise.all(
-    entries.map(async (entry) => {
-      const entryPath = path.join(directory, entry.name);
-      if (entry.isDirectory()) {
-        return readCssTree(entryPath);
-      }
-      return entry.name.endsWith(".css") ? readFile(entryPath, "utf8") : "";
-    }),
-  );
-  return contents.join("\n");
-}
+test("includes the approved five-step price ladder", async () => {
+  const catalog = await source("features/catalog/products.ts");
 
-test("emits the catalog's animation and scrolling utilities", async () => {
-  const css = await readCssTree(path.join(root, "dist"));
-
-  assert.match(css, /--tw-enter-opacity/);
-  assert.match(css, /scrollbar-width:\s*thin/);
-  assert.match(css, /scrollbar-width:\s*none/);
-  assert.match(css, /scrollbar-gutter:\s*stable/);
-  assert.match(css, /scroll-fade-reveal-b/);
-  assert.match(css, /mask-image:/);
-  assert.match(css, /tw-shimmer/);
-  assert.match(css, /prefers-reduced-motion:\s*reduce/);
-});
-
-test("forwards progress semantics to the primitive", async () => {
-  const { Progress } = await vite.ssrLoadModule("/components/ui/progress.tsx");
-  const html = renderToStaticMarkup(React.createElement(Progress, { value: 37 }));
-
-  assert.match(html, /aria-valuenow="37"/);
-  assert.match(html, /aria-valuetext="37%"/);
-  assert.match(html, /data-state="loading"/);
-});
-
-test("emits chart themes for the starter's media dark mode", async () => {
-  const { ChartStyle } = await vite.ssrLoadModule("/components/ui/chart.tsx");
-  const html = renderToStaticMarkup(
-    React.createElement(ChartStyle, {
-      id: "contract",
-      config: {
-        latency: { theme: { light: "#ffffff", dark: "#000000" } },
-      },
-    }),
-  );
-
-  assert.match(html, /\[data-chart=contract\]/);
-  assert.match(html, /@media \(prefers-color-scheme: dark\)/);
-  assert.doesNotMatch(html, /\.dark/);
-});
-
-test("renders sidebar skeletons deterministically", async () => {
-  const { SidebarMenuSkeleton } = await vite.ssrLoadModule(
-    "/components/ui/sidebar.tsx",
-  );
-  const first = renderToStaticMarkup(React.createElement(SidebarMenuSkeleton));
-  const second = renderToStaticMarkup(React.createElement(SidebarMenuSkeleton));
-
-  assert.equal(first, second);
-  assert.match(first, /--skeleton-width:70%/);
+  for (const price of [134, 170, 231, 325, 501]) {
+    assert.match(catalog, new RegExp(`price: ${price}`));
+  }
 });
