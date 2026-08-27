@@ -5,4 +5,5 @@
 @import "./features/storefront.css";
 @import "./features/catalog.css";
 @import "./features/cart.css";
+@import "./features/commerce.css";
 @import "./responsive.css";

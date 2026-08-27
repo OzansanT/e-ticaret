@@ -4,7 +4,7 @@
 .campaign-bar strong { color: #ffc56b; }
 .campaign-bar a { display: inline-flex; align-items: center; gap: 5px; font-weight: 700; }
 .campaign-bar svg { width: 13px; height: 13px; }
-.nav-shell { min-height: 84px; max-width: var(--content); margin: 0 auto; padding: 14px 28px; display: grid; grid-template-columns: auto auto minmax(220px, 1fr) auto; align-items: center; gap: 28px; }
+.nav-shell { min-height: 84px; max-width: var(--content); margin: 0 auto; padding: 14px 28px; display: grid; grid-template-columns: auto auto minmax(220px, 1fr) auto auto; align-items: center; gap: 20px; }
 .shop-layout { max-width: var(--content); margin: 0 auto; padding: 28px; display: grid; grid-template-columns: 190px minmax(0, 1fr) 230px; align-items: start; gap: 28px; }
 .catalog-section { min-width: 0; }
 .category-rail, .campaign-aside { position: sticky; top: 20px; }

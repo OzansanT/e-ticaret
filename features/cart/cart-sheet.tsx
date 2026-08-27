@@ -81,8 +81,8 @@ export function CartSheet() {
                 <span>Lorem ipsum</span>
                 <strong>{formatPrice(cart.total)}</strong>
               </div>
-              <Button className="checkout-button" disabled>
-                Dolor sit amet
+              <Button className="checkout-button" asChild>
+                <a href="/checkout">Dolor sit amet</a>
               </Button>
               <button className="clear-cart" onClick={cart.clear}>Consectetur elit</button>
             </>

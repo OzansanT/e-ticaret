@@ -1,0 +1,68 @@
+"use client";
+
+import { ArrowLeft, Check, PackageCheck, Plus, ShieldCheck, Truck } from "lucide-react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
+import { CartProvider, useCart } from "@/features/cart/cart-context";
+import { CartSheet } from "@/features/cart/cart-sheet";
+import { formatPrice, type Product } from "./products";
+import { CommerceTracker } from "@/features/engagement/commerce-tracker";
+import type { CampaignRule } from "@/db/catalog";
+
+function ProductDetailContent({ product }: { product: Product }) {
+  const cart = useCart();
+
+  return (
+    <div className="commerce-page">
+      <header className="commerce-header">
+        <Link className="brand" href="/" aria-label="Lorem ipsum">
+          <span className="brand__mark">◐</span>
+          <span><strong>Lorem Ipsum</strong><small>Dolor sit amet.</small></span>
+        </Link>
+        <CartSheet />
+      </header>
+      <main className="product-detail">
+        <nav className="commerce-breadcrumb" aria-label="Lorem ipsum">
+          <Link href="/"><ArrowLeft aria-hidden="true" /> Lorem ipsum</Link>
+          <span>/</span>
+          <span>{product.shortName}</span>
+        </nav>
+        <section className="product-detail__grid">
+          <div className="product-detail__visual" style={{ "--product-accent": product.accent } as React.CSSProperties}>
+            {/* Merchant-managed R2 images are already optimized before upload. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={product.imageUrl} alt={product.name} />
+            <span>{product.sku}</span>
+          </div>
+          <div className="product-detail__copy">
+            <span className="eyebrow">{product.eyebrow}</span>
+            <h1>{product.name}</h1>
+            <p className="product-detail__lead">{product.longDescription}</p>
+            <div className="product-detail__stock">
+              <PackageCheck aria-hidden="true" />
+              <span>{product.stock > 0 ? `${product.stock} lorem ipsum` : "Dolor sit amet"}</span>
+            </div>
+            <ul>
+              {product.features.map((feature) => <li key={feature}><Check aria-hidden="true" /> {feature}</li>)}
+            </ul>
+            <div className="product-detail__buy">
+              <div><small>Lorem ipsum</small><strong>{formatPrice(product.price)}</strong></div>
+              <Button onClick={() => cart.add(product)} disabled={product.stock === 0}>
+                <Plus aria-hidden="true" /> {product.stock === 0 ? "Dolor sit" : "Lorem ipsum"}
+              </Button>
+            </div>
+            <div className="product-detail__trust">
+              <span><Truck aria-hidden="true" /><strong>Lorem ipsum</strong><small>Dolor sit amet</small></span>
+              <span><ShieldCheck aria-hidden="true" /><strong>Consectetur elit</strong><small>Sed do eiusmod</small></span>
+            </div>
+          </div>
+        </section>
+      </main>
+      <CommerceTracker productId={product.id} />
+    </div>
+  );
+}
+
+export function ProductDetail({ product, campaigns }: { product: Product; campaigns: CampaignRule[] }) {
+  return <CartProvider catalog={[product]} campaigns={campaigns}><ProductDetailContent product={product} /></CartProvider>;
+}

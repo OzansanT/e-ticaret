@@ -12,6 +12,7 @@ import {
 import { toast } from "sonner";
 import { products, type Product } from "@/features/catalog/products";
 import { selectBestCampaign } from "./campaigns";
+import type { CampaignRule } from "@/db/catalog";
 
 type CartLine = { product: Product; quantity: number };
 type Campaign = { name: string; discount: number; message: string };
@@ -30,7 +31,7 @@ type CartContextValue = {
 const STORAGE_KEY = "e-commerce-cart-v2";
 const CartContext = createContext<CartContextValue | null>(null);
 
-export function CartProvider({ children }: { children: ReactNode }) {
+export function CartProvider({ children, catalog = products, campaigns = [] }: { children: ReactNode; catalog?: Product[]; campaigns?: CampaignRule[] }) {
   const [quantities, setQuantities] = useState<Record<string, number>>({});
   const [hydrated, setHydrated] = useState(false);
 
@@ -43,7 +44,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
         restored = Object.fromEntries(
           Object.entries(parsed).filter(
             ([id, quantity]) =>
-              products.some((product) => product.id === id) &&
+              catalog.some((product) => product.id === id) &&
               Number.isInteger(quantity) &&
               Number(quantity) > 0 &&
               Number(quantity) <= 20,
@@ -59,7 +60,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       setHydrated(true);
     });
     return () => window.cancelAnimationFrame(restoreFrame);
-  }, []);
+  }, [catalog]);
 
   useEffect(() => {
     if (hydrated) {
@@ -70,9 +71,9 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const add = useCallback((product: Product) => {
     setQuantities((current) => ({
       ...current,
-      [product.id]: Math.min((current[product.id] ?? 0) + 1, 20),
+      [product.id]: Math.min((current[product.id] ?? 0) + 1, product.stock, 20),
     }));
-    toast.success(`${product.shortName} — lorem ipsum`);
+    if (product.stock > 0) toast.success(`${product.shortName} — lorem ipsum`);
   }, []);
 
   const decrease = useCallback((productId: string) => {
@@ -95,7 +96,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const clear = useCallback(() => setQuantities({}), []);
 
   const value = useMemo(() => {
-    const lines = products
+    const lines = catalog
       .filter((product) => quantities[product.id])
       .map((product) => ({ product, quantity: quantities[product.id] }));
     const itemCount = lines.reduce((sum, line) => sum + line.quantity, 0);
@@ -106,7 +107,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     const unitPrices = lines.flatMap(({ product, quantity }) =>
       Array.from({ length: quantity }, () => product.price),
     );
-    const campaign: Campaign = selectBestCampaign(unitPrices, subtotal);
+    const campaign: Campaign = selectBestCampaign(unitPrices, subtotal, campaigns);
 
     return {
       lines,
@@ -119,7 +120,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       remove,
       clear,
     };
-  }, [add, clear, decrease, quantities, remove]);
+  }, [add, campaigns, catalog, clear, decrease, quantities, remove]);
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
 }

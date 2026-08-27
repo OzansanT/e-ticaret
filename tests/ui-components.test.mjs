@@ -16,7 +16,62 @@ test("keeps one centralized CSS import hierarchy", async () => {
   assert.match(main, /@import "\.\/features\/storefront\.css"/);
   assert.match(main, /@import "\.\/features\/catalog\.css"/);
   assert.match(main, /@import "\.\/features\/cart\.css"/);
+  assert.match(main, /@import "\.\/features\/commerce\.css"/);
   assert.match(main, /@import "\.\/responsive\.css"/);
+});
+
+test("connects product detail routes, structured SEO and inventory fields", async () => {
+  const [catalog, productPage, sitemap] = await Promise.all([
+    source("features/catalog/products.ts"),
+    source("app/products/[slug]/page.tsx"),
+    source("app/sitemap.ts"),
+  ]);
+
+  assert.match(catalog, /sku: "LRM-001"/);
+  assert.match(catalog, /stock: 18/);
+  assert.match(catalog, /imageUrl: "\/product-placeholder\.svg"/);
+  assert.match(productPage, /"@type": "Product"/);
+  assert.match(productPage, /https:\/\/schema\.org\/InStock/);
+  assert.match(sitemap, /products\/\$\{product\.slug\}/);
+});
+
+test("keeps checkout prices and inventory authoritative on the server", async () => {
+  const [flow, route, migration] = await Promise.all([
+    source("features/checkout/checkout-flow.tsx"),
+    source("app/api/checkout/route.ts"),
+    source("drizzle/0000_swift_toxin.sql"),
+  ]);
+
+  assert.match(flow, /productId: product\.id, quantity/);
+  assert.doesNotMatch(flow, /productId: product\.id, price:/);
+  assert.match(route, /SELECT id, sku, name, price, stock/);
+  assert.match(route, /UPDATE catalog_products SET stock = stock - \?/);
+  assert.match(migration, /catalog_products_stock_update_guard/);
+});
+
+test("adds persistent commerce, consent, recovery, push and admin foundations", async () => {
+  const [schema, consent, tracker, worker, admin] = await Promise.all([
+    source("db/schema.ts"),
+    source("features/engagement/consent-manager.tsx"),
+    source("features/engagement/commerce-tracker.tsx"),
+    source("public/sw.js"),
+    source("app/api/admin/route.ts"),
+  ]);
+
+  for (const table of ["orders", "addresses", "coupons", "loyalty_ledger", "referral_links", "analytics_events", "push_subscriptions", "abandoned_carts"]) {
+    assert.match(schema, new RegExp(`"${table}"`));
+  }
+  assert.match(consent, /analytics: false, marketing: false/);
+  assert.match(tracker, /readConsent\(\)\?\.marketing/);
+  assert.match(worker, /addEventListener\("push"/);
+  assert.match(admin, /requireAdminApi/);
+});
+
+test("protects payment updates with a signed webhook", async () => {
+  const webhook = await source("app/api/payments/webhook/route.ts");
+  assert.match(webhook, /PAYMENT_WEBHOOK_SECRET/);
+  assert.match(webhook, /crypto\.subtle\.sign\("HMAC"/);
+  assert.match(webhook, /x-commerce-signature/);
 });
 
 test("keeps the requested storefront regions connected", async () => {
