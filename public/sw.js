@@ -1,9 +1,10 @@
-const CACHE_VERSION = "lorem-store-v4";
+const CACHE_VERSION = "lorem-store-v5";
 const APP_SHELL = [
   "/",
   "/manifest.webmanifest",
   "/favicon.svg",
   "/product-placeholder.svg",
+  "/lorem-shoe.webp",
 ];
 
 self.addEventListener("install", (event) => {

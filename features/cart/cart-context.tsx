@@ -10,11 +10,11 @@ import {
   type ReactNode,
 } from "react";
 import { toast } from "sonner";
-import { products, type Product } from "@/features/catalog/products";
+import { products, type Product, type ProductVariant } from "@/features/catalog/products";
 import { selectBestCampaign } from "./campaigns";
 import type { CampaignRule } from "@/db/catalog";
 
-type CartLine = { product: Product; quantity: number };
+type CartLine = { lineId: string; product: Product; variant?: ProductVariant; quantity: number };
 type Campaign = { name: string; discount: number; message: string };
 type CartContextValue = {
   lines: CartLine[];
@@ -22,14 +22,19 @@ type CartContextValue = {
   subtotal: number;
   campaign: Campaign;
   total: number;
-  add: (product: Product) => void;
-  decrease: (productId: string) => void;
-  remove: (productId: string) => void;
+  add: (product: Product, variant?: ProductVariant) => void;
+  decrease: (lineId: string) => void;
+  remove: (lineId: string) => void;
   clear: () => void;
 };
 
-const STORAGE_KEY = "e-commerce-cart-v2";
+const STORAGE_KEY = "e-commerce-cart-v3";
+const LEGACY_STORAGE_KEY = "e-commerce-cart-v2";
 const CartContext = createContext<CartContextValue | null>(null);
+
+function createLineId(productId: string, variantId?: string) {
+  return variantId ? `${productId}::${variantId}` : productId;
+}
 
 export function CartProvider({ children, catalog = products, campaigns = [] }: { children: ReactNode; catalog?: Product[]; campaigns?: CampaignRule[] }) {
   const [quantities, setQuantities] = useState<Record<string, number>>({});
@@ -38,16 +43,18 @@ export function CartProvider({ children, catalog = products, campaigns = [] }: {
   useEffect(() => {
     let restored: Record<string, number> = {};
     try {
-      const stored = window.localStorage.getItem(STORAGE_KEY);
+      const stored = window.localStorage.getItem(STORAGE_KEY) ?? window.localStorage.getItem(LEGACY_STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored) as Record<string, unknown>;
         restored = Object.fromEntries(
           Object.entries(parsed).filter(
-            ([id, quantity]) =>
-              catalog.some((product) => product.id === id) &&
-              Number.isInteger(quantity) &&
-              Number(quantity) > 0 &&
-              Number(quantity) <= 20,
+            ([lineId, quantity]) => {
+              const [productId, variantId] = lineId.split("::");
+              const product = catalog.find((item) => item.id === productId);
+              const variant = variantId ? product?.variants?.find((item) => item.id === variantId) : undefined;
+              const validSelection = product && (product.variants?.length ? Boolean(variant) : !variantId);
+              return validSelection && Number.isInteger(quantity) && Number(quantity) > 0 && Number(quantity) <= 20;
+            },
           ),
         ) as Record<string, number>;
       }
@@ -68,27 +75,31 @@ export function CartProvider({ children, catalog = products, campaigns = [] }: {
     }
   }, [hydrated, quantities]);
 
-  const add = useCallback((product: Product) => {
+  const add = useCallback((product: Product, variant?: ProductVariant) => {
+    if (product.variants?.length && !variant) return;
+    const lineId = createLineId(product.id, variant?.id);
+    const availableStock = variant?.stock ?? product.stock;
+    if (availableStock <= 0) return;
     setQuantities((current) => ({
       ...current,
-      [product.id]: Math.min((current[product.id] ?? 0) + 1, product.stock, 20),
+      [lineId]: Math.min((current[lineId] ?? 0) + 1, availableStock, 20),
     }));
-    if (product.stock > 0) toast.success(`${product.shortName} — lorem ipsum`);
+    toast.success(`${product.shortName} — lorem ipsum`);
   }, []);
 
-  const decrease = useCallback((productId: string) => {
+  const decrease = useCallback((lineId: string) => {
     setQuantities((current) => {
       const next = { ...current };
-      if ((next[productId] ?? 0) <= 1) delete next[productId];
-      else next[productId] -= 1;
+      if ((next[lineId] ?? 0) <= 1) delete next[lineId];
+      else next[lineId] -= 1;
       return next;
     });
   }, []);
 
-  const remove = useCallback((productId: string) => {
+  const remove = useCallback((lineId: string) => {
     setQuantities((current) => {
       const next = { ...current };
-      delete next[productId];
+      delete next[lineId];
       return next;
     });
   }, []);
@@ -96,9 +107,17 @@ export function CartProvider({ children, catalog = products, campaigns = [] }: {
   const clear = useCallback(() => setQuantities({}), []);
 
   const value = useMemo(() => {
-    const lines = catalog
-      .filter((product) => quantities[product.id])
-      .map((product) => ({ product, quantity: quantities[product.id] }));
+    const lines = Object.entries(quantities).flatMap(([lineId, quantity]) => {
+      const [productId, variantId] = lineId.split("::");
+      const product = catalog.find((item) => item.id === productId);
+      if (!product) return [];
+      const variant = variantId ? product.variants?.find((item) => item.id === variantId) : undefined;
+      if (product.variants?.length && !variant) return [];
+      const pricedProduct = variant?.price !== null && variant?.price !== undefined
+        ? { ...product, price: variant.price }
+        : product;
+      return [{ lineId, product: pricedProduct, ...(variant ? { variant } : {}), quantity }];
+    });
     const itemCount = lines.reduce((sum, line) => sum + line.quantity, 0);
     const subtotal = lines.reduce(
       (sum, line) => sum + line.product.price * line.quantity,

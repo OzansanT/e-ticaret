@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { ArrowLeft, Check, PackageCheck, Plus, ShieldCheck, Truck } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
@@ -13,6 +14,10 @@ import { ProductReviews } from "./product-reviews";
 
 function ProductDetailContent({ product, reviews, signedIn, signInUrl }: { product: Product; reviews: ProductReviewSummary; signedIn: boolean; signInUrl: string }) {
   const cart = useCart();
+  const [variantId, setVariantId] = useState(product.variants?.find((variant) => variant.stock > 0)?.id ?? product.variants?.[0]?.id ?? "");
+  const selectedVariant = product.variants?.find((variant) => variant.id === variantId);
+  const availableStock = selectedVariant?.stock ?? product.stock;
+  const displayPrice = selectedVariant?.price ?? product.price;
 
   return (
     <div className="commerce-page">
@@ -40,17 +45,18 @@ function ProductDetailContent({ product, reviews, signedIn, signInUrl }: { produ
             <span className="eyebrow">{product.eyebrow}</span>
             <h1>{product.name}</h1>
             <p className="product-detail__lead">{product.longDescription}</p>
+            {product.variants?.length ? <fieldset className="product-variants"><legend>Lorem ipsum</legend><div>{product.variants.map((variant) => <button type="button" key={variant.id} aria-pressed={variant.id === variantId} disabled={variant.stock === 0} onClick={() => setVariantId(variant.id)}>{variant.label}</button>)}</div></fieldset> : null}
             <div className="product-detail__stock">
               <PackageCheck aria-hidden="true" />
-              <span>{product.stock > 0 ? `${product.stock} lorem ipsum` : "Dolor sit amet"}</span>
+              <span>{availableStock > 0 ? `${availableStock} lorem ipsum` : "Dolor sit amet"}</span>
             </div>
             <ul>
               {product.features.map((feature) => <li key={feature}><Check aria-hidden="true" /> {feature}</li>)}
             </ul>
             <div className="product-detail__buy">
-              <div><small>Lorem ipsum</small><strong>{formatPrice(product.price)}</strong></div>
-              <Button onClick={() => cart.add(product)} disabled={product.stock === 0}>
-                <Plus aria-hidden="true" /> {product.stock === 0 ? "Dolor sit" : "Lorem ipsum"}
+              <div><small>Lorem ipsum</small><strong>{formatPrice(displayPrice)}</strong></div>
+              <Button onClick={() => cart.add(product, selectedVariant)} disabled={availableStock === 0 || Boolean(product.variants?.length && !selectedVariant)}>
+                <Plus aria-hidden="true" /> {availableStock === 0 ? "Dolor sit" : "Lorem ipsum"}
               </Button>
             </div>
             <div className="product-detail__trust">

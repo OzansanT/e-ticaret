@@ -45,7 +45,7 @@ export default async function OrderPage({ params }: { params: Promise<{ token: s
           <div><dt>Tempor incididunt</dt><dd>{formatPrice(order.tax_total)}</dd></div>
           <div><dt>Ut labore</dt><dd>{formatPrice(order.total)}</dd></div>
         </dl>
-        <div className="order-line-items">{result.items.map((item) => { const line = item as { sku: string; name: string; unit_price: number; quantity: number }; return <article key={`${line.sku}-${line.quantity}`}><span><strong>{line.name}</strong><small>{line.sku} · {line.quantity}</small></span><b>{formatPrice(line.unit_price * line.quantity)}</b></article>; })}</div>
+        <div className="order-line-items">{result.items.map((item) => { const line = item as { sku: string; variant_sku: string | null; variant_label: string | null; name: string; unit_price: number; quantity: number }; return <article key={`${line.variant_sku ?? line.sku}-${line.quantity}`}><span><strong>{line.name}</strong><small>{line.variant_sku ?? line.sku}{line.variant_label ? ` · ${line.variant_label}` : ""} · {line.quantity}</small></span><b>{formatPrice(line.unit_price * line.quantity)}</b></article>; })}</div>
         <div className="order-links"><a className="primary-link" href="/account">Lorem ipsum</a><a className="secondary-link" href={`/orders/${token}/invoice`}><Printer aria-hidden="true" /> Dolor sit</a></div>
         {user?.email.toLowerCase() === order.email.toLowerCase() && order.status === "pending" && order.payment_status === "pending" ? <OrderActions token={token} /> : null}
       </main>

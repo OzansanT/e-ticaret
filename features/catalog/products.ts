@@ -28,6 +28,15 @@ export type Product = {
   features: [string, string, string];
   accent: string;
   badge?: string;
+  variants?: ProductVariant[];
+};
+
+export type ProductVariant = {
+  id: string;
+  sku: string;
+  label: string;
+  price: number | null;
+  stock: number;
 };
 
 export const categories = [
@@ -127,6 +136,31 @@ export const products: Product[] = [
     longDescription: "Excepteur sint occaecat cupidatat non proident. Sunt in culpa qui officia deserunt mollit anim id est laborum.",
     features: ["Excepteur sint", "Occaecat cupidatat", "Mollit anim laborum"],
     accent: "#292929",
+  },
+  {
+    id: "lorem-shoe-01",
+    slug: "lorem-ipsum-calceus",
+    sku: "LRM-006",
+    name: "Lorem Ipsum Calceus",
+    shortName: "Lorem 06",
+    size: "39–44",
+    price: 589,
+    stock: 36,
+    imageUrl: "/lorem-shoe.webp",
+    category: "Lorem Ipsum",
+    eyebrow: "Lorem Ipsum Novum",
+    description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
+    longDescription: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
+    features: ["Lorem ipsum mollis", "Dolor sit amet", "Consectetur elit"],
+    accent: "#e86f00",
+    badge: "Novum",
+    variants: [39, 40, 41, 42, 43, 44].map((size) => ({
+      id: `lorem-shoe-${size}`,
+      sku: `LRM-006-${size}`,
+      label: `Lorem ${size}`,
+      price: null,
+      stock: 6,
+    })),
   },
 ];
 

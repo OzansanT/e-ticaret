@@ -14,6 +14,12 @@
 .product-detail__copy { padding: clamp(38px, 6vw, 82px); align-self: center; }
 .product-detail__copy h1 { margin: 15px 0 20px; font-size: clamp(44px, 5vw, 74px); line-height: .94; letter-spacing: -.07em; }
 .product-detail__lead { margin: 0; color: var(--muted); font-size: 15px; line-height: 1.75; }
+.product-variants { margin: 24px 0 0; padding: 0; display: grid; gap: 10px; border: 0; }
+.product-variants legend { color: var(--muted); font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .1em; }
+.product-variants > div { display: flex; flex-wrap: wrap; gap: 8px; }
+.product-variants button { min-width: 48px; height: 42px; padding: 0 12px; border: 1px solid var(--line); border-radius: 10px; background: white; color: var(--ink); font-size: 11px; font-weight: 800; cursor: pointer; }
+.product-variants button[aria-pressed="true"] { border-color: var(--forest); background: var(--soft-green); box-shadow: inset 0 0 0 1px var(--forest); }
+.product-variants button:disabled { opacity: .4; cursor: not-allowed; }
 .product-detail__stock { margin-top: 24px; display: flex; align-items: center; gap: 8px; color: var(--forest); font-size: 12px; font-weight: 800; }
 .product-detail__stock svg { width: 18px; }
 .product-detail__copy ul { margin: 25px 0; padding: 0; display: grid; gap: 11px; list-style: none; }
@@ -226,6 +232,12 @@
 .admin-review-list strong { font-size: 13px; }
 .admin-review-list p { margin: 0; color: var(--muted); font-size: 10px; }
 .admin-review-list small { color: var(--muted); font-size: 9px; }
+.admin-variant-list { margin-bottom: 22px; display: grid; }
+.admin-variant-list article { padding: 12px 0; display: grid; grid-template-columns: minmax(0, 1fr) auto auto; gap: 20px; align-items: center; border-bottom: 1px solid var(--line); }
+.admin-variant-list article > span { display: grid; gap: 3px; }
+.admin-variant-list small, .admin-variant-list p { color: var(--muted); font-size: 10px; }
+.admin-variant-list b { font-size: 11px; }
+.admin-variant-list em { color: var(--muted); font-size: 10px; font-style: normal; }
 .consent-panel { z-index: 80; position: fixed; left: 22px; right: 22px; bottom: 22px; max-width: 1080px; margin: 0 auto; padding: 22px; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 18px; align-items: start; border: 1px solid var(--line); border-radius: var(--radius-md); background: white; box-shadow: 0 24px 80px rgb(23 34 30 / 22%); }
 .consent-panel__icon { width: 44px; height: 44px; display: grid; place-items: center; border-radius: 13px; background: var(--soft-green); color: var(--forest); }
 .consent-panel__icon svg { width: 20px; }

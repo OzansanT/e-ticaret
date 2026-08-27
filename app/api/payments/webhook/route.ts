@@ -60,13 +60,17 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true });
   }
   if (parsed.data.status === "failed" && ["pending", "processing"].includes(order.status) && order.payment_status !== "paid") {
-    const lines = await db.prepare("SELECT product_id, quantity FROM order_items WHERE order_id = ?")
-      .bind(order.id).all<{ product_id: string; quantity: number }>();
+    const lines = await db.prepare("SELECT product_id, variant_id, quantity FROM order_items WHERE order_id = ?")
+      .bind(order.id).all<{ product_id: string; variant_id: string | null; quantity: number }>();
     await db.batch([
       db.prepare("INSERT INTO order_cancellations (order_id, reason, actor_email) VALUES (?, ?, ?)")
         .bind(order.id, "Lorem ipsum dolor sit amet.", "payment-webhook"),
-      ...lines.results.map((line) => db.prepare("UPDATE catalog_products SET stock = stock + ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?")
-        .bind(line.quantity, line.product_id)),
+      ...lines.results.flatMap((line) => [
+        db.prepare("UPDATE catalog_products SET stock = stock + ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?")
+          .bind(line.quantity, line.product_id),
+        ...(line.variant_id ? [db.prepare("UPDATE catalog_product_variants SET stock = stock + ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?")
+          .bind(line.quantity, line.variant_id)] : []),
+      ]),
       db.prepare("UPDATE orders SET payment_status = 'failed', status = 'cancelled', updated_at = CURRENT_TIMESTAMP WHERE id = ?")
         .bind(order.id),
       db.prepare("UPDATE payment_sessions SET status = 'failed', provider_reference = ?, updated_at = CURRENT_TIMESTAMP WHERE order_id = ?")

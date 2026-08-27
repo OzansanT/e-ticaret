@@ -50,7 +50,14 @@ export default async function ProductPage({ params }: ProductPageProps) {
     description: product.description,
     sku: product.sku,
     image: product.imageUrl,
-    offers: {
+    offers: product.variants?.length ? product.variants.map((variant) => ({
+      "@type": "Offer",
+      sku: variant.sku,
+      priceCurrency: "TRY",
+      price: variant.price ?? product.price,
+      availability: variant.stock > 0 ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+      url: `https://e-ticaret.talasresul.chatgpt.site/products/${product.slug}`,
+    })) : {
       "@type": "Offer",
       priceCurrency: "TRY",
       price: product.price,

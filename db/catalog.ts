@@ -1,5 +1,5 @@
 import { getD1 } from "./index";
-import { categorySlugs, products as fallbackProducts, type Product } from "@/features/catalog/products";
+import { categorySlugs, products as fallbackProducts, type Product, type ProductVariant } from "@/features/catalog/products";
 
 export type CatalogCategory = {
   name: Product["category"];
@@ -26,7 +26,20 @@ type ProductRow = {
   badge: string | null;
 };
 
-function fromRow(row: ProductRow): Product {
+type VariantRow = {
+  id: string;
+  product_id: string;
+  sku: string;
+  label: string;
+  price: number | null;
+  stock: number;
+};
+
+function fromVariant(row: VariantRow): ProductVariant {
+  return { id: row.id, sku: row.sku, label: row.label, price: row.price, stock: row.stock };
+}
+
+function fromRow(row: ProductRow, variants: ProductVariant[] = []): Product {
   let features: string[] = [];
   try {
     features = JSON.parse(row.features) as string[];
@@ -54,13 +67,14 @@ function fromRow(row: ProductRow): Product {
       features[2] ?? "Adipiscing elit sed",
     ],
     accent: row.accent,
+    ...(variants.length > 0 ? { variants } : {}),
     ...(row.badge ? { badge: row.badge } : {}),
   };
 }
 
 export async function ensureDefaultProducts() {
   const db = await getD1();
-  const statements = fallbackProducts.map((product) =>
+  const productStatements = fallbackProducts.map((product) =>
     db.prepare(`
       INSERT INTO catalog_products (
         id, slug, sku, name, short_name, size, price, stock, image_url,
@@ -86,20 +100,38 @@ export async function ensureDefaultProducts() {
       product.badge ?? null,
     ),
   );
-  await db.batch(statements);
+  const variantStatements = fallbackProducts.flatMap((product) => (product.variants ?? []).map((variant) =>
+    db.prepare(`
+      INSERT INTO catalog_product_variants (id, product_id, sku, label, price, stock, active)
+      VALUES (?, ?, ?, ?, ?, ?, 1)
+      ON CONFLICT(id) DO NOTHING
+    `).bind(variant.id, product.id, variant.sku, variant.label, variant.price, variant.stock),
+  ));
+  await db.batch([...productStatements, ...variantStatements]);
 }
 
 export async function listProducts(): Promise<Product[]> {
   try {
+    await ensureDefaultProducts();
     const db = await getD1();
-    const result = await db.prepare(`
+    const [result, variants] = await Promise.all([
+      db.prepare(`
       SELECT id, slug, sku, name, short_name, size, price, stock, image_url,
              category, eyebrow, description, long_description, features, accent, badge
       FROM catalog_products
       WHERE active = 1
       ORDER BY created_at, id
-    `).all<ProductRow>();
-    return result.results.length > 0 ? result.results.map(fromRow) : fallbackProducts;
+      `).all<ProductRow>(),
+      db.prepare(`
+        SELECT id, product_id, sku, label, price, stock
+        FROM catalog_product_variants WHERE active = 1 ORDER BY created_at, id
+      `).all<VariantRow>(),
+    ]);
+    if (result.results.length === 0) return fallbackProducts;
+    return result.results.map((row) => fromRow(
+      row,
+      variants.results.filter((variant) => variant.product_id === row.id).map(fromVariant),
+    ));
   } catch {
     return fallbackProducts;
   }
@@ -107,6 +139,7 @@ export async function listProducts(): Promise<Product[]> {
 
 export async function getProductBySlug(slug: string): Promise<Product | undefined> {
   try {
+    await ensureDefaultProducts();
     const db = await getD1();
     const row = await db.prepare(`
       SELECT id, slug, sku, name, short_name, size, price, stock, image_url,
@@ -115,7 +148,12 @@ export async function getProductBySlug(slug: string): Promise<Product | undefine
       WHERE slug = ? AND active = 1
       LIMIT 1
     `).bind(slug).first<ProductRow>();
-    return row ? fromRow(row) : fallbackProducts.find((product) => product.slug === slug);
+    if (!row) return fallbackProducts.find((product) => product.slug === slug);
+    const variants = await db.prepare(`
+      SELECT id, product_id, sku, label, price, stock
+      FROM catalog_product_variants WHERE product_id = ? AND active = 1 ORDER BY created_at, id
+    `).bind(row.id).all<VariantRow>();
+    return fromRow(row, variants.results.map(fromVariant));
   } catch {
     return fallbackProducts.find((product) => product.slug === slug);
   }

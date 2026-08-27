@@ -64,7 +64,7 @@ export async function getOrderByToken(token: string) {
     if (!order) return null;
     const [items, events, refunds] = await db.batch([
       db.prepare(`
-        SELECT product_id, sku, name, unit_price, quantity
+        SELECT product_id, variant_id, variant_sku, variant_label, sku, name, unit_price, quantity
         FROM order_items
         WHERE order_id = ? ORDER BY rowid
       `).bind(order.id),
