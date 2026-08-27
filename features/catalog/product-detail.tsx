@@ -8,8 +8,10 @@ import { CartSheet } from "@/features/cart/cart-sheet";
 import { formatPrice, type Product } from "./products";
 import { CommerceTracker } from "@/features/engagement/commerce-tracker";
 import type { CampaignRule } from "@/db/catalog";
+import type { ProductReviewSummary } from "@/db/reviews";
+import { ProductReviews } from "./product-reviews";
 
-function ProductDetailContent({ product }: { product: Product }) {
+function ProductDetailContent({ product, reviews, signedIn, signInUrl }: { product: Product; reviews: ProductReviewSummary; signedIn: boolean; signInUrl: string }) {
   const cart = useCart();
 
   return (
@@ -57,12 +59,13 @@ function ProductDetailContent({ product }: { product: Product }) {
             </div>
           </div>
         </section>
+        <ProductReviews productSlug={product.slug} summary={reviews} signedIn={signedIn} signInUrl={signInUrl} />
       </main>
       <CommerceTracker productId={product.id} />
     </div>
   );
 }
 
-export function ProductDetail({ product, campaigns }: { product: Product; campaigns: CampaignRule[] }) {
-  return <CartProvider catalog={[product]} campaigns={campaigns}><ProductDetailContent product={product} /></CartProvider>;
+export function ProductDetail({ product, campaigns, reviews, signedIn, signInUrl }: { product: Product; campaigns: CampaignRule[]; reviews: ProductReviewSummary; signedIn: boolean; signInUrl: string }) {
+  return <CartProvider catalog={[product]} campaigns={campaigns}><ProductDetailContent product={product} reviews={reviews} signedIn={signedIn} signInUrl={signInUrl} /></CartProvider>;
 }

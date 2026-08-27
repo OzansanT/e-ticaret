@@ -74,6 +74,66 @@ test("protects payment updates with a signed webhook", async () => {
   assert.match(webhook, /x-commerce-signature/);
 });
 
+test("adds server-calculated fulfillment, tax and idempotent checkout totals", async () => {
+  const [checkout, validation, migration] = await Promise.all([
+    source("app/api/checkout/route.ts"),
+    source("lib/commerce-validation.ts"),
+    source("drizzle/0001_clever_the_phantom.sql"),
+  ]);
+  assert.match(checkout, /shipping_total, tax_total/);
+  assert.match(checkout, /idempotency_key = \?/);
+  assert.match(checkout, /rate_basis_points/);
+  assert.match(validation, /checkoutKey/);
+  assert.match(migration, /CREATE TABLE `shipping_methods`/);
+  assert.match(migration, /CREATE TABLE `tax_rates`/);
+  assert.match(migration, /orders_idempotency_key_unique/);
+});
+
+test("supports safe cancellation, refund records and printable invoices", async () => {
+  const [cancellation, admin, invoice, webhook] = await Promise.all([
+    source("app/api/orders/[token]/route.ts"),
+    source("app/api/admin/route.ts"),
+    source("app/orders/[token]/invoice/page.tsx"),
+    source("app/api/payments/webhook/route.ts"),
+  ]);
+  assert.match(cancellation, /order_cancellations/);
+  assert.match(cancellation, /stock = stock \+ \?/);
+  assert.match(admin, /INSERT INTO refunds/);
+  assert.match(invoice, /invoice-totals/);
+  assert.match(webhook, /payment_failed/);
+});
+
+test("adds verified-purchase review moderation and review structured data", async () => {
+  const [route, productPage, admin] = await Promise.all([
+    source("app/api/products/[slug]/reviews/route.ts"),
+    source("app/products/[slug]/page.tsx"),
+    source("app/api/admin/route.ts"),
+  ]);
+  assert.match(route, /orders\.status = 'fulfilled'/);
+  assert.match(route, /orders\.payment_status = 'paid'/);
+  assert.match(productPage, /AggregateRating/);
+  assert.match(admin, /reviewStatus/);
+});
+
+test("publishes crawlable category collections", async () => {
+  const [categoryPage, sitemap, grid] = await Promise.all([
+    source("app/categories/[slug]/page.tsx"),
+    source("app/sitemap.ts"),
+    source("features/catalog/product-grid.tsx"),
+  ]);
+  assert.match(categoryPage, /CollectionPage/);
+  assert.match(categoryPage, /ItemList/);
+  assert.match(sitemap, /categories\/\$\{category\.slug\}/);
+  assert.match(grid, /categories\/\$\{categorySlug\(product\.category\)\}/);
+});
+
+test("does not place account, checkout, admin or order HTML in the offline cache", async () => {
+  const worker = await source("public/sw.js");
+  assert.match(worker, /const privatePath/);
+  for (const path of ["/account", "/admin", "/checkout", "/orders/"]) assert.match(worker, new RegExp(path.replaceAll("/", "\\/")));
+  assert.match(worker, /url\.pathname === "\/"/);
+});
+
 test("keeps the requested storefront regions connected", async () => {
   const storefront = await source("features/storefront/storefront.tsx");
 

@@ -7,6 +7,8 @@ export const cartLineSchema = z.object({
 
 export const checkoutSchema = z.object({
   email: z.string().email().max(200),
+  checkoutKey: z.string().trim().min(8).max(100),
+  shippingMethodId: z.string().trim().min(1).max(80).default("lorem-standard"),
   couponCode: z.string().trim().max(40).optional().default(""),
   referralCode: z.string().trim().max(60).optional().default(""),
   cartId: z.string().trim().max(100).optional().default(""),
@@ -78,14 +80,55 @@ export const couponAdminSchema = z.object({
   active: z.boolean().default(true),
 });
 
+export const shippingAdminSchema = z.object({
+  id: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).max(80),
+  name: z.string().trim().min(2).max(120),
+  price: z.number().int().min(0).max(1_000_000),
+  freeAbove: z.number().int().min(0).max(10_000_000).nullable(),
+  estimatedDays: z.string().trim().min(1).max(80),
+  active: z.boolean().default(true),
+});
+
+export const taxAdminSchema = z.object({
+  id: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).max(80),
+  countryCode: z.string().trim().length(2).transform((value) => value.toUpperCase()),
+  name: z.string().trim().min(2).max(120),
+  rateBasisPoints: z.number().int().min(0).max(10_000),
+  active: z.boolean().default(true),
+});
+
+export const reviewSchema = z.object({
+  rating: z.number().int().min(1).max(5),
+  title: z.string().trim().min(2).max(100),
+  body: z.string().trim().min(10).max(1200),
+});
+
+export const orderCustomerActionSchema = z.object({
+  action: z.literal("cancel"),
+  reason: z.string().trim().min(3).max(500),
+});
+
 export const adminActionSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("product"), product: productAdminSchema }),
   z.object({ action: z.literal("campaign"), campaign: campaignAdminSchema }),
   z.object({ action: z.literal("coupon"), coupon: couponAdminSchema }),
+  z.object({ action: z.literal("shipping"), shipping: shippingAdminSchema }),
+  z.object({ action: z.literal("tax"), tax: taxAdminSchema }),
+  z.object({
+    action: z.literal("refund"),
+    orderNumber: z.string().min(3).max(80),
+    amount: z.number().int().min(1).max(10_000_000),
+    reason: z.string().trim().min(3).max(500),
+  }),
+  z.object({
+    action: z.literal("reviewStatus"),
+    reviewId: z.string().min(1).max(100),
+    status: z.enum(["pending", "approved", "rejected"]),
+  }),
   z.object({ action: z.literal("seed") }),
   z.object({
     action: z.literal("orderStatus"),
     orderNumber: z.string().min(3).max(80),
-    status: z.enum(["pending", "processing", "fulfilled", "cancelled", "refunded"]),
+    status: z.enum(["pending", "processing", "fulfilled", "cancelled"]),
   }),
 ]);

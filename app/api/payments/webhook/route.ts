@@ -37,17 +37,83 @@ export async function POST(request: Request) {
   const parsed = webhookSchema.safeParse(payload);
   if (!parsed.success) return NextResponse.json({ error: "Lorem ipsum dolor." }, { status: 400 });
 
-  const orderStatus = parsed.data.status === "paid" ? "processing" : parsed.data.status === "refunded" ? "refunded" : "pending";
   const db = await getD1();
-  await db.batch([
+  const order = await db.prepare("SELECT id, customer_id, status, payment_status, total FROM orders WHERE order_number = ? LIMIT 1")
+    .bind(parsed.data.orderNumber).first<{ id: string; customer_id: string | null; status: string; payment_status: string; total: number }>();
+  if (!order) return NextResponse.json({ error: "Lorem ipsum." }, { status: 404 });
+  if (parsed.data.status === "paid" && order.status === "cancelled") {
+    await db.batch([
+      db.prepare("UPDATE orders SET payment_status = 'paid', updated_at = CURRENT_TIMESTAMP WHERE id = ?").bind(order.id),
+      db.prepare("UPDATE payment_sessions SET status = 'paid', provider_reference = ?, updated_at = CURRENT_TIMESTAMP WHERE order_id = ?")
+        .bind(parsed.data.providerReference || null, order.id),
+      db.prepare(`
+        INSERT INTO refunds (id, order_id, amount, status, reason)
+        VALUES (?, ?, ?, 'requested', ?)
+        ON CONFLICT(id) DO NOTHING
+      `).bind(`late-payment-${order.id}`, order.id, order.total, "Lorem ipsum dolor sit amet."),
+      db.prepare(`
+        INSERT INTO order_events (id, order_id, kind, note)
+        VALUES (?, ?, 'late_payment', ?)
+        ON CONFLICT(id) DO NOTHING
+      `).bind(`late-payment-event-${order.id}`, order.id, parsed.data.providerReference || "Lorem ipsum"),
+    ]);
+    return NextResponse.json({ ok: true });
+  }
+  if (parsed.data.status === "failed" && ["pending", "processing"].includes(order.status) && order.payment_status !== "paid") {
+    const lines = await db.prepare("SELECT product_id, quantity FROM order_items WHERE order_id = ?")
+      .bind(order.id).all<{ product_id: string; quantity: number }>();
+    await db.batch([
+      db.prepare("INSERT INTO order_cancellations (order_id, reason, actor_email) VALUES (?, ?, ?)")
+        .bind(order.id, "Lorem ipsum dolor sit amet.", "payment-webhook"),
+      ...lines.results.map((line) => db.prepare("UPDATE catalog_products SET stock = stock + ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?")
+        .bind(line.quantity, line.product_id)),
+      db.prepare("UPDATE orders SET payment_status = 'failed', status = 'cancelled', updated_at = CURRENT_TIMESTAMP WHERE id = ?")
+        .bind(order.id),
+      db.prepare("UPDATE payment_sessions SET status = 'failed', provider_reference = ?, updated_at = CURRENT_TIMESTAMP WHERE order_id = ?")
+        .bind(parsed.data.providerReference || null, order.id),
+      db.prepare("INSERT INTO order_events (id, order_id, kind, note) VALUES (?, ?, 'payment_failed', ?) ON CONFLICT(id) DO NOTHING")
+        .bind(`payment-failed-${order.id}`, order.id, parsed.data.providerReference || "Lorem ipsum"),
+    ]);
+    return NextResponse.json({ ok: true });
+  }
+  if (parsed.data.status === "failed") return NextResponse.json({ ok: true, ignored: true });
+
+  const orderStatus = parsed.data.status === "paid" ? "processing" : parsed.data.status === "refunded" ? "refunded" : order.status;
+  const statements: D1PreparedStatement[] = [
     db.prepare(`
       UPDATE orders SET payment_status = ?, status = ?, updated_at = CURRENT_TIMESTAMP
-      WHERE order_number = ?
-    `).bind(parsed.data.status, orderStatus, parsed.data.orderNumber),
+      WHERE id = ?
+    `).bind(parsed.data.status, orderStatus, order.id),
     db.prepare(`
       UPDATE payment_sessions SET status = ?, provider_reference = ?, updated_at = CURRENT_TIMESTAMP
-      WHERE order_id = (SELECT id FROM orders WHERE order_number = ?)
-    `).bind(parsed.data.status, parsed.data.providerReference || null, parsed.data.orderNumber),
-  ]);
+      WHERE order_id = ?
+    `).bind(parsed.data.status, parsed.data.providerReference || null, order.id),
+    db.prepare(`
+      INSERT INTO order_events (id, order_id, kind, note)
+      VALUES (?, ?, ?, ?)
+      ON CONFLICT(id) DO NOTHING
+    `).bind(`payment-${parsed.data.status}-${order.id}`, order.id, `payment_${parsed.data.status}`, parsed.data.providerReference || "Lorem ipsum"),
+  ];
+  if (parsed.data.status === "refunded") {
+    statements.push(db.prepare(`
+      UPDATE refunds SET status = 'completed', provider_reference = ?, updated_at = CURRENT_TIMESTAMP
+      WHERE order_id = ? AND status IN ('requested', 'processing')
+    `).bind(parsed.data.providerReference || null, order.id));
+  }
+  if (parsed.data.status === "paid" && order.customer_id) {
+    statements.push(db.prepare(`
+      INSERT INTO loyalty_ledger (id, customer_id, order_id, points, reason)
+      VALUES (?, ?, ?, ?, ?)
+      ON CONFLICT(id) DO NOTHING
+    `).bind(`loyalty-order-${order.id}`, order.customer_id, order.id, Math.floor(order.total / 10), "Lorem ipsum"));
+  }
+  if (parsed.data.status === "refunded" && order.customer_id) {
+    statements.push(db.prepare(`
+      INSERT INTO loyalty_ledger (id, customer_id, order_id, points, reason)
+      SELECT ?, ?, ?, -points, ? FROM loyalty_ledger WHERE id = ?
+      ON CONFLICT(id) DO NOTHING
+    `).bind(`loyalty-refund-${order.id}`, order.customer_id, order.id, "Dolor sit amet", `loyalty-order-${order.id}`));
+  }
+  await db.batch(statements);
   return NextResponse.json({ ok: true });
 }

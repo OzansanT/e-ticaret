@@ -1,5 +1,11 @@
 import { getD1 } from "./index";
-import { products as fallbackProducts, type Product } from "@/features/catalog/products";
+import { categorySlugs, products as fallbackProducts, type Product } from "@/features/catalog/products";
+
+export type CatalogCategory = {
+  name: Product["category"];
+  slug: string;
+  count: number;
+};
 
 type ProductRow = {
   id: string;
@@ -113,6 +119,23 @@ export async function getProductBySlug(slug: string): Promise<Product | undefine
   } catch {
     return fallbackProducts.find((product) => product.slug === slug);
   }
+}
+
+export async function listCatalogCategories(): Promise<CatalogCategory[]> {
+  const products = await listProducts();
+  return Object.entries(categorySlugs).map(([name, slug]) => ({
+    name: name as Product["category"],
+    slug,
+    count: products.filter((product) => product.category === name).length,
+  }));
+}
+
+export async function getCategoryBySlug(slug: string) {
+  const category = (Object.entries(categorySlugs) as Array<[Product["category"], string]>)
+    .find(([, categorySlug]) => categorySlug === slug);
+  if (!category) return null;
+  const products = (await listProducts()).filter((product) => product.category === category[0]);
+  return { name: category[0], slug: category[1], products };
 }
 
 export type CampaignRule = {

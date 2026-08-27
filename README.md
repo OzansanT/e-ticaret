@@ -9,6 +9,12 @@ A responsive, brand-neutral commerce application that keeps customer-facing plac
 - SKU, inventory, product-image URL and three-feature catalog model
 - D1-backed customers, saved addresses, orders, order items and payment sessions
 - Server-authoritative pricing and inventory deduction with negative-stock database guards
+- Configurable shipping methods, free-shipping thresholds and country tax rates
+- Idempotent checkout writes and D1-backed rate limits for sensitive customer actions
+- Customer cancellation with atomic stock restoration and payment-failure recovery
+- Printable order invoices, order event history and manual refund-request tracking
+- Verified-purchase product reviews with an admin moderation queue
+- Crawlable category pages with canonical metadata, ItemList JSON-LD and sitemap entries
 - Coupon rules, campaign rules, loyalty points and referral links
 - Consent-gated first-party analytics and abandoned-cart snapshots
 - PWA install/offline shell, push-subscription storage and notification handling
@@ -23,8 +29,10 @@ A responsive, brand-neutral commerce application that keeps customer-facing plac
 ```text
 /
 /products/:slug
+/categories/:slug
 /checkout
 /orders/:token
+/orders/:token/invoice
 /account
 /admin
 ```
@@ -44,7 +52,7 @@ Copy `.env.example` to `.env` for local work. Hosted values must be configured t
 - `PAYMENT_WEBHOOK_SECRET`: HMAC SHA-256 secret for payment callbacks
 - `VAPID_PUBLIC_KEY`: public Web Push application-server key
 
-The current `manual` payment adapter records a pending order and payment session; it never charges a customer. A selected payment provider, merchant credentials, provider session creation and webhook mapping are required before accepting real payments. Push subscriptions can be stored after a VAPID public key is configured; sending notifications still requires the matching private key and a scheduled sender.
+The current `manual` payment adapter records a pending order and payment session; it never charges a customer or moves money for a refund. Refund actions create auditable requests that a future provider adapter can execute and complete through the signed webhook. A selected payment provider, merchant credentials, provider session creation and webhook mapping are required before accepting real payments. Push subscriptions can be stored after a VAPID public key is configured; sending notifications still requires the matching private key and a scheduled sender.
 
 ## Run and verify
 

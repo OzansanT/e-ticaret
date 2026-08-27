@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { getChatGPTUser } from "@/app/chatgpt-auth";
 import { selectBestCampaign } from "@/features/cart/campaigns";
-import { ensureDefaultProducts } from "@/db/catalog";
+import { ensureCommerceDefaults } from "@/db/commerce-config";
 import { getD1, getRuntimeEnv } from "@/db";
 import { checkoutSchema } from "@/lib/commerce-validation";
+import { enforceRateLimit, requestIdentity } from "@/lib/rate-limit";
 
 type CheckoutProduct = {
   id: string;
@@ -22,23 +23,6 @@ type CouponRow = {
   usage_count: number;
 };
 
-async function ensureCommerceDefaults() {
-  const db = await getD1();
-  await ensureDefaultProducts();
-  await db.batch([
-    db.prepare(`
-      INSERT INTO coupons (id, code, kind, value, minimum_subtotal, usage_limit, active)
-      VALUES (?, ?, ?, ?, ?, ?, 1)
-      ON CONFLICT(code) DO NOTHING
-    `).bind("coupon-lorem-50", "LOREM50", "fixed", 50, 250, 1000),
-    db.prepare(`
-      INSERT INTO campaigns (id, name, kind, value, threshold, minimum_items, active)
-      VALUES (?, ?, ?, ?, ?, ?, 1)
-      ON CONFLICT(id) DO NOTHING
-    `).bind("campaign-lorem-10", "Lorem ipsum %10", "percentage", 10, 0, 0),
-  ]);
-}
-
 export async function POST(request: Request) {
   const parsed = checkoutSchema.safeParse(await request.json().catch(() => null));
   if (!parsed.success) {
@@ -56,6 +40,30 @@ export async function POST(request: Request) {
   try {
     await ensureCommerceDefaults();
     const db = await getD1();
+    const limit = await enforceRateLimit("checkout", requestIdentity(request, email), 5, 300);
+    if (!limit.allowed) {
+      return NextResponse.json(
+        { error: "Lorem ipsum dolor sit amet." },
+        { status: 429, headers: { "retry-after": String(limit.retryAfter) } },
+      );
+    }
+    const existing = await db.prepare(`
+      SELECT order_number, public_token, total, payment_provider, payment_status,
+             shipping_total, tax_total
+      FROM orders WHERE idempotency_key = ? AND email = ? LIMIT 1
+    `).bind(input.checkoutKey, email).first<Record<string, unknown>>();
+    if (existing) {
+      return NextResponse.json({
+        orderNumber: existing.order_number,
+        token: existing.public_token,
+        total: existing.total,
+        paymentProvider: existing.payment_provider,
+        paymentStatus: existing.payment_status,
+        shippingTotal: existing.shipping_total,
+        taxTotal: existing.tax_total,
+        replayed: true,
+      });
+    }
     const requestedLines = [...grouped.entries()].map(([productId, quantity]) => ({ productId, quantity }));
     const productResults = await db.batch(
       requestedLines.map((line) => db.prepare(`
@@ -108,7 +116,19 @@ export async function POST(request: Request) {
       }
     }
     discount = Math.min(discount, subtotal);
-    const total = subtotal - discount;
+    const shipping = await db.prepare(`
+      SELECT id, price, free_above FROM shipping_methods WHERE id = ? AND active = 1 LIMIT 1
+    `).bind(input.shippingMethodId).first<{ id: string; price: number; free_above: number | null }>();
+    if (!shipping) {
+      return NextResponse.json({ error: "Lorem ipsum dolor sit amet." }, { status: 400 });
+    }
+    const shippingTotal = shipping.free_above !== null && subtotal >= shipping.free_above ? 0 : shipping.price;
+    const tax = await db.prepare(`
+      SELECT rate_basis_points FROM tax_rates WHERE country_code = ? AND active = 1 LIMIT 1
+    `).bind(input.address.countryCode.toUpperCase()).first<{ rate_basis_points: number }>();
+    const taxableTotal = Math.max(0, subtotal - discount) + shippingTotal;
+    const taxTotal = Math.round(taxableTotal * (Number(tax?.rate_basis_points ?? 0) / 10_000));
+    const total = taxableTotal + taxTotal;
 
     const customerId = crypto.randomUUID();
     const referralCode = `LOREM-${crypto.randomUUID().slice(0, 8).toUpperCase()}`;
@@ -136,8 +156,9 @@ export async function POST(request: Request) {
       db.prepare(`
         INSERT INTO orders (
           id, public_token, order_number, customer_id, email, status, payment_status,
-          payment_provider, subtotal, discount, total, coupon_code, referral_code, shipping_address
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          payment_provider, subtotal, discount, shipping_total, tax_total, total,
+          shipping_method, coupon_code, referral_code, idempotency_key, shipping_address
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `).bind(
         orderId,
         publicToken,
@@ -149,9 +170,13 @@ export async function POST(request: Request) {
         paymentProvider,
         subtotal,
         discount,
+        shippingTotal,
+        taxTotal,
         total,
+        shipping.id,
         coupon?.code ?? null,
         input.referralCode || null,
+        input.checkoutKey,
         JSON.stringify(input.address),
       ),
       db.prepare(`
@@ -159,14 +184,14 @@ export async function POST(request: Request) {
         VALUES (?, ?, ?, ?)
       `).bind(crypto.randomUUID(), orderId, paymentProvider, "pending"),
       db.prepare(`
-        INSERT INTO loyalty_ledger (id, customer_id, order_id, points, reason)
-        VALUES (?, ?, ?, ?, ?)
-      `).bind(crypto.randomUUID(), customer.id, orderId, Math.floor(total / 10), "Lorem ipsum"),
-      db.prepare(`
         INSERT INTO referral_links (id, customer_id, code, active)
         VALUES (?, ?, ?, 1)
         ON CONFLICT(code) DO NOTHING
       `).bind(crypto.randomUUID(), customer.id, customer.referral_code),
+      db.prepare(`
+        INSERT INTO order_events (id, order_id, kind, note, actor_email)
+        VALUES (?, ?, ?, ?, ?)
+      `).bind(crypto.randomUUID(), orderId, "created", "Lorem ipsum dolor sit amet.", email),
     ];
 
     for (const { product, quantity } of selectedProducts) {
@@ -211,8 +236,32 @@ export async function POST(request: Request) {
       total,
       paymentProvider,
       paymentStatus: "pending",
+      shippingTotal,
+      taxTotal,
     }, { status: 201 });
   } catch {
+    try {
+      const db = await getD1();
+      const existing = await db.prepare(`
+        SELECT order_number, public_token, total, payment_provider, payment_status,
+               shipping_total, tax_total
+        FROM orders WHERE idempotency_key = ? AND email = ? LIMIT 1
+      `).bind(input.checkoutKey, email).first<Record<string, unknown>>();
+      if (existing) {
+        return NextResponse.json({
+          orderNumber: existing.order_number,
+          token: existing.public_token,
+          total: existing.total,
+          paymentProvider: existing.payment_provider,
+          paymentStatus: existing.payment_status,
+          shippingTotal: existing.shipping_total,
+          taxTotal: existing.tax_total,
+          replayed: true,
+        });
+      }
+    } catch {
+      // Fall through to the bounded public error below.
+    }
     return NextResponse.json({ error: "Lorem ipsum dolor sit amet, consectetur adipiscing elit." }, { status: 500 });
   }
 }
