@@ -14,6 +14,7 @@ Dr. Animal için geliştirilen, mobil uyumlu pet bakım ürünleri mağazası. �
 - Mobil kategori şeritleri ve sağdan açılan sepet paneli
 - Dr. Animal marka renkleriyle optimize edilmiş hero görseli
 - Türkçe SEO başlık ve açıklama verileri
+- Kurulabilir PWA manifesti, çevrimdışı mağaza kabuğu ve otomatik kaynak kontrolleri
 
 Ödeme düğmesi bu aşamada bilinçli olarak pasiftir. Gerçek ödeme, sipariş, stok ve müşteri hesabı akışları bir servis seçilmeden taklit edilmemiştir.
 
@@ -36,6 +37,8 @@ e-ticaret/
 │       ├── campaigns.js        # Saf kampanya motoru
 │       ├── cart-context.tsx    # Sepet durumu ve kalıcılık
 │       └── cart-sheet.tsx      # Sepet paneli
+│   └── pwa/
+│       └── pwa-register.tsx    # Servis worker kaydı
 ├── styles/
 │   ├── main.css                # Tek CSS dağıtım noktası
 │   ├── tokens.css              # Renkler ve ölçüler
