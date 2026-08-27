@@ -17,6 +17,7 @@ import { CartProvider, useCart } from "@/features/cart/cart-context";
 import { CartSheet } from "@/features/cart/cart-sheet";
 import { ProductGrid } from "@/features/catalog/product-grid";
 import { categories, products, type Category } from "@/features/catalog/products";
+import { PwaRegister } from "@/features/pwa/pwa-register";
 
 function Header({ search, setSearch }: { search: string; setSearch: (value: string) => void }) {
   return (
@@ -192,6 +193,7 @@ function StorefrontContent() {
         <p className="footer-note">© 2026 Dr. Animal. Ürün bilgileri bakım amaçlıdır.</p>
       </footer>
       <Toaster position="bottom-center" richColors />
+      <PwaRegister />
     </div>
   );
 }

@@ -1,0 +1,14 @@
+{
+  "name": "Dr. Animal E-Ticaret",
+  "short_name": "Dr. Animal",
+  "description": "Kedi ve köpekler için günlük bakım ürünleri mağazası.",
+  "lang": "tr",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f7f4ee",
+  "theme_color": "#ff7b00",
+  "icons": [
+    { "src": "/favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any maskable" }
+  ]
+}
