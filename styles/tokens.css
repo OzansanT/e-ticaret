@@ -1,0 +1,35 @@
+:root {
+  --orange: #ff7b00;
+  --orange-dark: #d65a00;
+  --ink: #17221e;
+  --forest: #0d5c45;
+  --paper: #f7f4ee;
+  --white: #ffffff;
+  --line: #dedbd3;
+  --muted: #69726e;
+  --soft-green: #e2efe8;
+  --soft-orange: #fff0df;
+  --shadow: 0 22px 60px rgb(23 34 30 / 10%);
+  --radius-sm: 12px;
+  --radius-md: 20px;
+  --radius-lg: 32px;
+  --content: 1480px;
+  --background: var(--paper);
+  --foreground: var(--ink);
+  --card: var(--white);
+  --card-foreground: var(--ink);
+  --popover: var(--white);
+  --popover-foreground: var(--ink);
+  --primary: var(--forest);
+  --primary-foreground: var(--white);
+  --secondary: var(--soft-orange);
+  --secondary-foreground: var(--ink);
+  --muted-foreground: var(--muted);
+  --accent: var(--soft-green);
+  --accent-foreground: var(--forest);
+  --destructive: #b42318;
+  --border: var(--line);
+  --input: var(--line);
+  --ring: var(--orange);
+  --radius: 0.75rem;
+}

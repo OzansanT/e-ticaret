@@ -1,0 +1,30 @@
+.cart-sheet { width: min(94vw, 440px) !important; max-width: none !important; border-color: var(--line); background: var(--paper); }
+.cart-sheet__header { padding: 26px 24px 18px; border-bottom: 1px solid var(--line); }
+.cart-sheet__header [data-slot="sheet-title"] { font-size: 28px; letter-spacing: -.05em; }
+.cart-lines { padding: 10px 24px; display: grid; gap: 4px; overflow-y: auto; }
+.cart-line { padding: 14px 0; display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: 12px; align-items: start; border-bottom: 1px solid var(--line); }
+.cart-line__swatch { width: 42px; height: 42px; border: 7px solid white; border-radius: 12px; box-shadow: 0 5px 14px rgb(23 34 30 / 12%); }
+.cart-line > div:nth-child(2) { display: grid; gap: 3px; }
+.cart-line > div:nth-child(2) > strong { font-size: 13px; }
+.cart-line > div:nth-child(2) > span { color: var(--muted); font-size: 10px; }
+.quantity-control { margin-top: 7px; width: max-content; display: flex; align-items: center; overflow: hidden; border: 1px solid var(--line); border-radius: 999px; background: white; }
+.quantity-control button { width: 26px; height: 24px; display: grid; place-items: center; border: 0; background: transparent; cursor: pointer; }
+.quantity-control button:hover { background: var(--soft-orange); }
+.quantity-control svg { width: 11px; }
+.quantity-control output { width: 25px; text-align: center; font-size: 10px; font-weight: 800; }
+.cart-line__price { display: grid; justify-items: end; gap: 10px; }
+.cart-line__price strong { font-size: 12px; }
+.cart-line__price button { display: grid; place-items: center; border: 0; background: transparent; color: var(--muted); cursor: pointer; }
+.cart-line__price svg { width: 15px; }
+.cart-empty { margin: auto; padding: 40px; text-align: center; }
+.cart-empty > svg { width: 44px; height: 44px; color: var(--orange); }
+.cart-empty h3 { margin: 14px 0 6px; }
+.cart-empty p { margin: 0; color: var(--muted); font-size: 12px; line-height: 1.5; }
+.cart-sheet__footer { padding: 18px 24px 24px; border-top: 1px solid var(--line); background: white; }
+.discount-row, .total-row { display: flex; align-items: center; justify-content: space-between; }
+.discount-row { color: var(--forest); font-size: 12px; }
+.discount-note { margin: 0; color: var(--muted); font-size: 10px; }
+.total-row { margin-top: 8px; font-size: 16px; }
+.total-row strong { font-size: 25px; letter-spacing: -.05em; }
+.checkout-button { height: 48px; margin-top: 8px; border-radius: 999px; }
+.clear-cart { margin: 3px auto 0; border: 0; background: none; color: var(--muted); font-size: 10px; text-decoration: underline; cursor: pointer; }
