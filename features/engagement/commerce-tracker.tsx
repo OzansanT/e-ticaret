@@ -16,7 +16,7 @@ function readOrCreate(key: string) {
   return value;
 }
 
-function createBrowserId() {
+export function createBrowserId() {
   if (typeof crypto.randomUUID === "function") return crypto.randomUUID();
   const bytes = crypto.getRandomValues(new Uint8Array(16));
   bytes[6] = (bytes[6] & 0x0f) | 0x40;
@@ -27,6 +27,13 @@ function createBrowserId() {
 
 export function readCartId() {
   return typeof window === "undefined" ? "" : readOrCreate(CART_ID_KEY);
+}
+
+export function rotateCartId() {
+  if (typeof window === "undefined") return "";
+  const value = createBrowserId();
+  window.localStorage.setItem(CART_ID_KEY, value);
+  return value;
 }
 
 export function readReferralCode() {

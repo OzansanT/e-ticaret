@@ -4,6 +4,13 @@ export type ProductCategory =
   | "Amet Elit"
   | "Tempor Incididunt";
 
+export const categorySlugs = {
+  "Lorem Ipsum": "lorem-ipsum",
+  "Dolor Sit": "dolor-sit",
+  "Amet Elit": "amet-elit",
+  "Tempor Incididunt": "tempor-incididunt",
+} as const satisfies Record<ProductCategory, string>;
+
 export type Product = {
   id: string;
   slug: string;
@@ -125,6 +132,10 @@ export const products: Product[] = [
 
 export function findProductBySlug(slug: string) {
   return products.find((product) => product.slug === slug);
+}
+
+export function categorySlug(category: ProductCategory) {
+  return categorySlugs[category];
 }
 
 export const formatPrice = (price: number) =>

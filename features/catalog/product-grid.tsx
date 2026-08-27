@@ -2,7 +2,7 @@
 
 import { ArrowRight, Check, PackageCheck, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { formatPrice, type Product } from "./products";
+import { categorySlug, formatPrice, type Product } from "./products";
 import { useCart } from "@/features/cart/cart-context";
 
 export function ProductGrid({ products }: { products: Product[] }) {
@@ -37,7 +37,7 @@ export function ProductGrid({ products }: { products: Product[] }) {
           </div>
           <div className="product-card__body">
             <div className="product-card__meta">
-              <span className="product-card__category">{product.category}</span>
+              <a className="product-card__category" href={`/categories/${categorySlug(product.category)}`}>{product.category}</a>
               <span><PackageCheck aria-hidden="true" /> {product.sku}</span>
             </div>
             <h3>{product.name}</h3>

@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { getProductBySlug, listCampaignRules } from "@/db/catalog";
+import { getProductReviews } from "@/db/reviews";
 import { ProductDetail } from "@/features/catalog/product-detail";
+import { chatGPTSignInPath, getChatGPTUser } from "@/app/chatgpt-auth";
 
 export const dynamic = "force-dynamic";
 
@@ -33,8 +35,13 @@ export async function generateMetadata({ params }: ProductPageProps): Promise<Me
 
 export default async function ProductPage({ params }: ProductPageProps) {
   const { slug } = await params;
-  const [product, campaigns] = await Promise.all([getProductBySlug(slug), listCampaignRules()]);
+  const product = await getProductBySlug(slug);
   if (!product) notFound();
+  const [campaigns, reviews, user] = await Promise.all([
+    listCampaignRules(),
+    getProductReviews(product.id),
+    getChatGPTUser(),
+  ]);
 
   const structuredData = {
     "@context": "https://schema.org",
@@ -52,6 +59,20 @@ export default async function ProductPage({ params }: ProductPageProps) {
         : "https://schema.org/OutOfStock",
       url: `https://e-ticaret.talasresul.chatgpt.site/products/${product.slug}`,
     },
+    ...(reviews.count > 0 ? {
+      aggregateRating: {
+        "@type": "AggregateRating",
+        ratingValue: reviews.average,
+        reviewCount: reviews.count,
+      },
+      review: reviews.reviews.slice(0, 5).map((review) => ({
+        "@type": "Review",
+        author: { "@type": "Person", name: review.displayName },
+        reviewRating: { "@type": "Rating", ratingValue: review.rating },
+        name: review.title,
+        reviewBody: review.body,
+      })),
+    } : {}),
   };
 
   return (
@@ -60,7 +81,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData).replace(/</g, "\\u003c") }}
       />
-      <ProductDetail product={product} campaigns={campaigns} />
+      <ProductDetail product={product} campaigns={campaigns} reviews={reviews} signedIn={Boolean(user)} signInUrl={chatGPTSignInPath(`/products/${product.slug}`)} />
     </>
   );
 }

@@ -56,18 +56,28 @@ export async function getOrderByToken(token: string) {
   try {
     const db = await getD1();
     const order = await db.prepare(`
-      SELECT order_number, status, payment_status, payment_provider, subtotal,
-             discount, total, email, shipping_address, created_at
+      SELECT id, order_number, status, payment_status, payment_provider, subtotal,
+             discount, shipping_total, tax_total, total, shipping_method,
+             email, shipping_address, created_at
       FROM orders WHERE public_token = ? LIMIT 1
     `).bind(token).first<Record<string, unknown>>();
     if (!order) return null;
-    const items = await db.prepare(`
-      SELECT sku, name, unit_price, quantity
-      FROM order_items
-      WHERE order_id = (SELECT id FROM orders WHERE public_token = ?)
-      ORDER BY rowid
-    `).bind(token).all<Record<string, unknown>>();
-    return { order, items: items.results };
+    const [items, events, refunds] = await db.batch([
+      db.prepare(`
+        SELECT product_id, sku, name, unit_price, quantity
+        FROM order_items
+        WHERE order_id = ? ORDER BY rowid
+      `).bind(order.id),
+      db.prepare(`
+        SELECT kind, note, created_at FROM order_events
+        WHERE order_id = ? ORDER BY created_at DESC, rowid DESC
+      `).bind(order.id),
+      db.prepare(`
+        SELECT amount, status, reason, created_at FROM refunds
+        WHERE order_id = ? ORDER BY created_at DESC, rowid DESC
+      `).bind(order.id),
+    ]);
+    return { order, items: items.results, events: events.results, refunds: refunds.results };
   } catch {
     return null;
   }

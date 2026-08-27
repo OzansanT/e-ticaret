@@ -95,9 +95,13 @@ export const orders = sqliteTable(
     paymentProvider: text("payment_provider").notNull().default("manual"),
     subtotal: integer("subtotal").notNull(),
     discount: integer("discount").notNull().default(0),
+    shippingTotal: integer("shipping_total").notNull().default(0),
+    taxTotal: integer("tax_total").notNull().default(0),
     total: integer("total").notNull(),
+    shippingMethod: text("shipping_method").notNull().default("lorem-standard"),
     couponCode: text("coupon_code"),
     referralCode: text("referral_code"),
+    idempotencyKey: text("idempotency_key"),
     shippingAddress: text("shipping_address").notNull(),
     createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
     updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
@@ -105,9 +109,35 @@ export const orders = sqliteTable(
   (table) => [
     uniqueIndex("orders_public_token_unique").on(table.publicToken),
     uniqueIndex("orders_order_number_unique").on(table.orderNumber),
+    uniqueIndex("orders_idempotency_key_unique").on(table.idempotencyKey),
     index("orders_customer_idx").on(table.customerId),
     index("orders_email_idx").on(table.email),
   ],
+);
+
+export const shippingMethods = sqliteTable("shipping_methods", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  price: integer("price").notNull().default(0),
+  freeAbove: integer("free_above"),
+  estimatedDays: text("estimated_days").notNull(),
+  active: integer("active", { mode: "boolean" }).notNull().default(true),
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+});
+
+export const taxRates = sqliteTable(
+  "tax_rates",
+  {
+    id: text("id").primaryKey(),
+    countryCode: text("country_code").notNull(),
+    name: text("name").notNull(),
+    rateBasisPoints: integer("rate_basis_points").notNull().default(0),
+    active: integer("active", { mode: "boolean" }).notNull().default(true),
+    createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [uniqueIndex("tax_rates_country_unique").on(table.countryCode)],
 );
 
 export const orderItems = sqliteTable(
@@ -137,6 +167,41 @@ export const paymentSessions = sqliteTable(
   },
   (table) => [index("payment_sessions_order_idx").on(table.orderId)],
 );
+
+export const refunds = sqliteTable(
+  "refunds",
+  {
+    id: text("id").primaryKey(),
+    orderId: text("order_id").notNull().references(() => orders.id, { onDelete: "cascade" }),
+    amount: integer("amount").notNull(),
+    status: text("status").notNull().default("requested"),
+    reason: text("reason").notNull(),
+    providerReference: text("provider_reference"),
+    createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [index("refunds_order_idx").on(table.orderId)],
+);
+
+export const orderEvents = sqliteTable(
+  "order_events",
+  {
+    id: text("id").primaryKey(),
+    orderId: text("order_id").notNull().references(() => orders.id, { onDelete: "cascade" }),
+    kind: text("kind").notNull(),
+    note: text("note").notNull(),
+    actorEmail: text("actor_email"),
+    createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [index("order_events_order_idx").on(table.orderId)],
+);
+
+export const orderCancellations = sqliteTable("order_cancellations", {
+  orderId: text("order_id").primaryKey().references(() => orders.id, { onDelete: "cascade" }),
+  reason: text("reason").notNull(),
+  actorEmail: text("actor_email").notNull(),
+  createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+});
 
 export const coupons = sqliteTable(
   "coupons",
@@ -220,3 +285,30 @@ export const abandonedCarts = sqliteTable(
   },
   (table) => [uniqueIndex("abandoned_carts_cart_id_unique").on(table.cartId)],
 );
+
+export const productReviews = sqliteTable(
+  "product_reviews",
+  {
+    id: text("id").primaryKey(),
+    productId: text("product_id").notNull().references(() => catalogProducts.id, { onDelete: "cascade" }),
+    customerId: text("customer_id").notNull().references(() => customers.id, { onDelete: "cascade" }),
+    orderId: text("order_id").references(() => orders.id, { onDelete: "set null" }),
+    rating: integer("rating").notNull(),
+    title: text("title").notNull(),
+    body: text("body").notNull(),
+    status: text("status").notNull().default("pending"),
+    createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    uniqueIndex("product_reviews_customer_product_unique").on(table.customerId, table.productId),
+    index("product_reviews_product_status_idx").on(table.productId, table.status),
+  ],
+);
+
+export const rateLimitBuckets = sqliteTable("rate_limit_buckets", {
+  key: text("key").primaryKey(),
+  hits: integer("hits").notNull().default(0),
+  windowStartedAt: integer("window_started_at").notNull(),
+  updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+});

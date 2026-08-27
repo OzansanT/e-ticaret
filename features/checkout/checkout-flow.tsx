@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { ArrowLeft, Check, LockKeyhole, ShoppingBag } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -9,15 +9,24 @@ import { Input } from "@/components/ui/input";
 import { CartProvider, useCart } from "@/features/cart/cart-context";
 import { formatPrice, type Product } from "@/features/catalog/products";
 import type { CampaignRule } from "@/db/catalog";
-import { CommerceTracker, readCartId, readReferralCode, trackCommerceEvent } from "@/features/engagement/commerce-tracker";
+import type { ShippingMethod, TaxRate } from "@/db/commerce-config";
+import { CommerceTracker, createBrowserId, readCartId, readReferralCode, rotateCartId, trackCommerceEvent } from "@/features/engagement/commerce-tracker";
 
-function CheckoutContent({ initialEmail }: { initialEmail: string }) {
+function CheckoutContent({ initialEmail, shippingMethods, taxRate }: { initialEmail: string; shippingMethods: ShippingMethod[]; taxRate: TaxRate }) {
   const cart = useCart();
   const [email, setEmail] = useState(initialEmail);
   const [couponCode, setCouponCode] = useState("");
   const [save, setSave] = useState(true);
   const [status, setStatus] = useState<"idle" | "submitting" | "error">("idle");
   const [message, setMessage] = useState("");
+  const [shippingMethodId, setShippingMethodId] = useState(shippingMethods[0]?.id ?? "lorem-standard");
+  const checkoutKey = useRef("");
+  const selectedShipping = shippingMethods.find((method) => method.id === shippingMethodId) ?? shippingMethods[0];
+  const shippingTotal = selectedShipping?.freeAbove !== null && selectedShipping?.freeAbove !== undefined && cart.subtotal >= selectedShipping.freeAbove
+    ? 0
+    : selectedShipping?.price ?? 0;
+  const taxTotal = Math.round((cart.total + shippingTotal) * (taxRate.rateBasisPoints / 10_000));
+  const estimatedTotal = cart.total + shippingTotal + taxTotal;
 
   useEffect(() => {
     trackCommerceEvent("begin_checkout", { items: cart.itemCount, subtotal: cart.subtotal });
@@ -28,6 +37,7 @@ function CheckoutContent({ initialEmail }: { initialEmail: string }) {
     if (cart.lines.length === 0) return;
     setStatus("submitting");
     setMessage("");
+    if (!checkoutKey.current) checkoutKey.current = `${readCartId()}-${createBrowserId()}`;
     const form = new FormData(event.currentTarget);
 
     try {
@@ -36,6 +46,8 @@ function CheckoutContent({ initialEmail }: { initialEmail: string }) {
         headers: { "content-type": "application/json" },
         body: JSON.stringify({
           email,
+          checkoutKey: checkoutKey.current,
+          shippingMethodId,
           couponCode,
           referralCode: readReferralCode(),
           cartId: readCartId(),
@@ -53,10 +65,11 @@ function CheckoutContent({ initialEmail }: { initialEmail: string }) {
           },
         }),
       });
-      const result = await response.json() as { token?: string; error?: string };
+      const result = await response.json() as { token?: string; total?: number; error?: string };
       if (!response.ok || !result.token) throw new Error(result.error ?? "Lorem ipsum dolor sit amet.");
-      trackCommerceEvent("order_created", { items: cart.itemCount, total: cart.total });
+      trackCommerceEvent("order_created", { items: cart.itemCount, total: result.total ?? estimatedTotal });
       cart.clear();
+      rotateCartId();
       window.location.assign(`/orders/${result.token}`);
     } catch (error) {
       setStatus("error");
@@ -101,6 +114,15 @@ function CheckoutContent({ initialEmail }: { initialEmail: string }) {
                 <legend>Consectetur elit</legend>
                 <label className="checkout-field--wide"><span>Lorem ipsum</span><Input value={couponCode} onChange={(event) => setCouponCode(event.target.value.toUpperCase())} placeholder="LOREM50" /></label>
               </fieldset>
+              <fieldset>
+                <legend>Lorem ipsum dolor</legend>
+                <div className="shipping-options checkout-field--wide">
+                  {shippingMethods.map((method) => {
+                    const price = method.freeAbove !== null && cart.subtotal >= method.freeAbove ? 0 : method.price;
+                    return <label key={method.id} className="shipping-option"><input type="radio" name="shippingMethod" value={method.id} checked={shippingMethodId === method.id} onChange={() => setShippingMethodId(method.id)} /><span><strong>{method.name}</strong><small>{method.estimatedDays}</small></span><b>{price === 0 ? "Lorem" : formatPrice(price)}</b></label>;
+                  })}
+                </div>
+              </fieldset>
               {message && <p className="form-message" role="alert">{message}</p>}
               <Button className="checkout-submit" size="lg" disabled={status === "submitting"}>
                 {status === "submitting" ? "Lorem ipsum…" : "Dolor sit amet"}
@@ -124,7 +146,9 @@ function CheckoutContent({ initialEmail }: { initialEmail: string }) {
           <dl>
             <div><dt>Lorem ipsum</dt><dd>{formatPrice(cart.subtotal)}</dd></div>
             <div><dt>{cart.campaign.name}</dt><dd>−{formatPrice(cart.campaign.discount)}</dd></div>
-            <div><dt>Dolor sit amet</dt><dd>{formatPrice(cart.total)}</dd></div>
+            <div><dt>Dolor sit amet</dt><dd>{shippingTotal === 0 ? "Lorem" : formatPrice(shippingTotal)}</dd></div>
+            <div><dt>{taxRate.name}</dt><dd>{formatPrice(taxTotal)}</dd></div>
+            <div><dt>Consectetur elit</dt><dd>{formatPrice(estimatedTotal)}</dd></div>
           </dl>
           <p><Check aria-hidden="true" /> Lorem ipsum dolor sit amet consectetur.</p>
         </aside>
@@ -134,6 +158,6 @@ function CheckoutContent({ initialEmail }: { initialEmail: string }) {
   );
 }
 
-export function CheckoutFlow({ catalog, campaigns, initialEmail }: { catalog: Product[]; campaigns: CampaignRule[]; initialEmail: string }) {
-  return <CartProvider catalog={catalog} campaigns={campaigns}><CheckoutContent initialEmail={initialEmail} /></CartProvider>;
+export function CheckoutFlow({ catalog, campaigns, initialEmail, shippingMethods, taxRate }: { catalog: Product[]; campaigns: CampaignRule[]; initialEmail: string; shippingMethods: ShippingMethod[]; taxRate: TaxRate }) {
+  return <CartProvider catalog={catalog} campaigns={campaigns}><CheckoutContent initialEmail={initialEmail} shippingMethods={shippingMethods} taxRate={taxRate} /></CartProvider>;
 }

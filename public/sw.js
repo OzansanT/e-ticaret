@@ -1,4 +1,4 @@
-const CACHE_VERSION = "lorem-store-v3";
+const CACHE_VERSION = "lorem-store-v4";
 const APP_SHELL = [
   "/",
   "/manifest.webmanifest",
@@ -32,10 +32,14 @@ self.addEventListener("fetch", (event) => {
   if (request.method !== "GET" || url.origin !== self.location.origin) return;
 
   if (request.mode === "navigate") {
+    const privatePath = ["/account", "/admin", "/checkout", "/orders/"].some(
+      (path) => url.pathname === path || url.pathname.startsWith(path),
+    );
+    if (privatePath) return;
     event.respondWith(
       fetch(request)
         .then((response) => {
-          if (response.ok) {
+          if (response.ok && url.pathname === "/") {
             const copy = response.clone();
             caches.open(CACHE_VERSION).then((cache) => cache.put("/", copy));
           }
