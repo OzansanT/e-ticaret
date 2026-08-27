@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { readFile, stat } from "node:fs/promises";
 import test from "node:test";
 
 const root = new URL("..", import.meta.url);
@@ -35,6 +35,26 @@ test("connects product detail routes, structured SEO and inventory fields", asyn
   assert.match(sitemap, /products\/\$\{product\.slug\}/);
 });
 
+test("adds one generated shoe example with size-level stock and SEO offers", async () => {
+  const [catalog, detail, checkout, schema, migration, asset] = await Promise.all([
+    source("features/catalog/products.ts"),
+    source("features/catalog/product-detail.tsx"),
+    source("app/api/checkout/route.ts"),
+    source("db/schema.ts"),
+    source("drizzle/0002_calm_ken_ellis.sql"),
+    stat(new URL("public/lorem-shoe.webp", root)),
+  ]);
+
+  assert.match(catalog, /slug: "lorem-ipsum-calceus"/);
+  assert.match(catalog, /\[39, 40, 41, 42, 43, 44\]/);
+  assert.match(detail, /className="product-variants"/);
+  assert.match(checkout, /catalog_product_variants\.stock/);
+  assert.match(checkout, /variant_sku, variant_label/);
+  assert.match(schema, /"catalog_product_variants"/);
+  assert.match(migration, /catalog_product_variants_stock_update_guard/);
+  assert.ok(asset.size > 10_000 && asset.size < 500_000);
+});
+
 test("keeps checkout prices and inventory authoritative on the server", async () => {
   const [flow, route, migration] = await Promise.all([
     source("features/checkout/checkout-flow.tsx"),
@@ -42,10 +62,11 @@ test("keeps checkout prices and inventory authoritative on the server", async ()
     source("drizzle/0000_swift_toxin.sql"),
   ]);
 
-  assert.match(flow, /productId: product\.id, quantity/);
+  assert.match(flow, /productId: product\.id, variantId: variant\?\.id, quantity/);
   assert.doesNotMatch(flow, /productId: product\.id, price:/);
-  assert.match(route, /SELECT id, sku, name, price, stock/);
+  assert.match(route, /COALESCE\(catalog_product_variants\.price, catalog_products\.price\) AS price/);
   assert.match(route, /UPDATE catalog_products SET stock = stock - \?/);
+  assert.match(route, /UPDATE catalog_product_variants SET stock = stock - \?/);
   assert.match(migration, /catalog_products_stock_update_guard/);
 });
 
@@ -98,6 +119,7 @@ test("supports safe cancellation, refund records and printable invoices", async 
   ]);
   assert.match(cancellation, /order_cancellations/);
   assert.match(cancellation, /stock = stock \+ \?/);
+  assert.match(cancellation, /catalog_product_variants SET stock = stock \+ \?/);
   assert.match(admin, /INSERT INTO refunds/);
   assert.match(invoice, /invoice-totals/);
   assert.match(webhook, /payment_failed/);

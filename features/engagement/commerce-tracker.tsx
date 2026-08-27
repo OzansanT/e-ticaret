@@ -80,7 +80,7 @@ export function CommerceTracker({ productId }: { productId?: string }) {
         body: JSON.stringify({
           cartId: readCartId(),
           subtotal: cart.subtotal,
-          lines: cart.lines.map(({ product, quantity }) => ({ productId: product.id, quantity })),
+          lines: cart.lines.map(({ product, variant, quantity }) => ({ productId: product.id, variantId: variant?.id, quantity })),
         }),
       });
     };

@@ -6,7 +6,8 @@ A responsive, brand-neutral commerce application that keeps customer-facing plac
 
 - Responsive storefront with search, category filters and a persistent cart
 - Product-detail routes with canonical metadata, Open Graph/X metadata and Product JSON-LD
-- SKU, inventory, product-image URL and three-feature catalog model
+- SKU, product-image URL, product variants and size-level inventory model
+- One optimized, brandless generated shoe example with selectable sizes 39–44
 - D1-backed customers, saved addresses, orders, order items and payment sessions
 - Server-authoritative pricing and inventory deduction with negative-stock database guards
 - Configurable shipping methods, free-shipping thresholds and country tax rates
@@ -19,7 +20,7 @@ A responsive, brand-neutral commerce application that keeps customer-facing plac
 - Consent-gated first-party analytics and abandoned-cart snapshots
 - PWA install/offline shell, push-subscription storage and notification handling
 - ChatGPT sign-in for account/order-history pages
-- Admin product, image upload, inventory, campaign, coupon and order-status management
+- Admin product, variant, image upload, inventory, campaign, coupon and order-status management
 - R2-backed product-image uploads with content-type, size and path validation
 - Signed provider-neutral payment webhook foundation
 - Automated structure, promotion, security, migration and rendered-output tests
@@ -41,7 +42,7 @@ A responsive, brand-neutral commerce application that keeps customer-facing plac
 
 The Sites manifest requests a D1 `DB` binding and an R2 `BUCKET` binding. Schema changes live in `db/schema.ts`; generated migrations are kept in `drizzle/`.
 
-The first checkout or authorized admin request seeds the bounded Lorem Ipsum placeholder catalog and default promotion records. Product photos are intentionally represented by a neutral placeholder until a merchant uploads actual catalog assets from `/admin`.
+The first catalog, checkout or authorized admin request seeds the bounded Lorem Ipsum catalog and default promotion records. The catalog includes one optimized brandless shoe example; remaining products intentionally use a neutral placeholder until a merchant uploads catalog assets from `/admin`.
 
 ## Runtime configuration
 

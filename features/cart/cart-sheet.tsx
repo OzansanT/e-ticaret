@@ -42,25 +42,25 @@ export function CartSheet() {
           </div>
         ) : (
           <div className="cart-lines">
-            {cart.lines.map(({ product, quantity }) => (
-              <article className="cart-line" key={product.id}>
+            {cart.lines.map(({ lineId, product, variant, quantity }) => (
+              <article className="cart-line" key={lineId}>
                 <div className="cart-line__swatch" style={{ background: product.accent }} />
                 <div>
                   <strong>{product.shortName}</strong>
-                  <span>{product.size}</span>
+                  <span>{variant?.label ?? product.size}</span>
                   <div className="quantity-control" aria-label={`${product.shortName} quantity`}>
-                    <button onClick={() => cart.decrease(product.id)} aria-label="Decrease quantity">
+                    <button onClick={() => cart.decrease(lineId)} aria-label="Decrease quantity">
                       <Minus aria-hidden="true" />
                     </button>
                     <output>{quantity}</output>
-                    <button onClick={() => cart.add(product)} aria-label="Increase quantity">
+                    <button onClick={() => cart.add(product, variant)} aria-label="Increase quantity">
                       <Plus aria-hidden="true" />
                     </button>
                   </div>
                 </div>
                 <div className="cart-line__price">
                   <strong>{formatPrice(product.price * quantity)}</strong>
-                  <button onClick={() => cart.remove(product.id)} aria-label={`Remove ${product.shortName}`}>
+                  <button onClick={() => cart.remove(lineId)} aria-label={`Remove ${product.shortName}`}>
                     <Trash2 aria-hidden="true" />
                   </button>
                 </div>

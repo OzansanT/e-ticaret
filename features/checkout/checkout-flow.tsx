@@ -51,7 +51,7 @@ function CheckoutContent({ initialEmail, shippingMethods, taxRate }: { initialEm
           couponCode,
           referralCode: readReferralCode(),
           cartId: readCartId(),
-          lines: cart.lines.map(({ product, quantity }) => ({ productId: product.id, quantity })),
+          lines: cart.lines.map(({ product, variant, quantity }) => ({ productId: product.id, variantId: variant?.id, quantity })),
           address: {
             label: String(form.get("label") ?? "Lorem"),
             recipientName: String(form.get("recipientName") ?? ""),
@@ -133,12 +133,12 @@ function CheckoutContent({ initialEmail, shippingMethods, taxRate }: { initialEm
         <aside className="order-summary" aria-label="Lorem ipsum">
           <h2>Lorem ipsum</h2>
           <div className="order-summary__lines">
-            {cart.lines.map(({ product, quantity }) => (
-              <article key={product.id}>
+            {cart.lines.map(({ lineId, product, variant, quantity }) => (
+              <article key={lineId}>
                 {/* Merchant-managed R2 images are already optimized before upload. */}
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={product.imageUrl} alt="" />
-                <div><strong>{product.shortName}</strong><small>{product.sku} · {quantity}</small></div>
+                <div><strong>{product.shortName}</strong><small>{variant?.sku ?? product.sku} · {variant?.label ?? product.size} · {quantity}</small></div>
                 <span>{formatPrice(product.price * quantity)}</span>
               </article>
             ))}

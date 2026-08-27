@@ -100,6 +100,24 @@ export async function POST(request: Request) {
         product.eyebrow, product.description, product.longDescription, JSON.stringify(product.features),
         product.accent, product.badge || null, product.active ? 1 : 0,
       ).run();
+    } else if (parsed.data.action === "variant") {
+      const variant = parsed.data.variant;
+      await db.batch([
+        db.prepare(`
+          INSERT INTO catalog_product_variants (id, product_id, sku, label, price, stock, active)
+          VALUES (?, ?, ?, ?, ?, ?, ?)
+          ON CONFLICT(id) DO UPDATE SET
+            product_id = excluded.product_id, sku = excluded.sku, label = excluded.label,
+            price = excluded.price, stock = excluded.stock, active = excluded.active,
+            updated_at = CURRENT_TIMESTAMP
+        `).bind(variant.id, variant.productId, variant.sku, variant.label, variant.price, variant.stock, variant.active ? 1 : 0),
+        db.prepare(`
+          UPDATE catalog_products SET
+            stock = COALESCE((SELECT SUM(stock) FROM catalog_product_variants WHERE product_id = ? AND active = 1), stock),
+            updated_at = CURRENT_TIMESTAMP
+          WHERE id = ?
+        `).bind(variant.productId, variant.productId),
+      ]);
     } else if (parsed.data.action === "campaign") {
       const campaign = parsed.data.campaign;
       await db.prepare(`
@@ -175,13 +193,17 @@ export async function POST(request: Request) {
         if (order.payment_status !== "pending" || !["pending", "processing"].includes(order.status)) {
           return NextResponse.json({ error: "Lorem ipsum dolor sit amet." }, { status: 409 });
         }
-        const lines = await db.prepare("SELECT product_id, quantity FROM order_items WHERE order_id = ?")
-          .bind(order.id).all<{ product_id: string; quantity: number }>();
+        const lines = await db.prepare("SELECT product_id, variant_id, quantity FROM order_items WHERE order_id = ?")
+          .bind(order.id).all<{ product_id: string; variant_id: string | null; quantity: number }>();
         await db.batch([
           db.prepare("INSERT INTO order_cancellations (order_id, reason, actor_email) VALUES (?, ?, ?)")
             .bind(order.id, "Lorem ipsum dolor sit amet.", admin.email),
-          ...lines.results.map((line) => db.prepare("UPDATE catalog_products SET stock = stock + ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?")
-            .bind(line.quantity, line.product_id)),
+          ...lines.results.flatMap((line) => [
+            db.prepare("UPDATE catalog_products SET stock = stock + ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?")
+              .bind(line.quantity, line.product_id),
+            ...(line.variant_id ? [db.prepare("UPDATE catalog_product_variants SET stock = stock + ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?")
+              .bind(line.quantity, line.variant_id)] : []),
+          ]),
           db.prepare("UPDATE orders SET status = 'cancelled', updated_at = CURRENT_TIMESTAMP WHERE id = ?").bind(order.id),
           db.prepare("INSERT INTO order_events (id, order_id, kind, note, actor_email) VALUES (?, ?, 'cancelled', ?, ?)")
             .bind(crypto.randomUUID(), order.id, "Lorem ipsum dolor sit amet.", admin.email),

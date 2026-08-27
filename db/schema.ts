@@ -31,6 +31,25 @@ export const catalogProducts = sqliteTable(
   ],
 );
 
+export const catalogProductVariants = sqliteTable(
+  "catalog_product_variants",
+  {
+    id: text("id").primaryKey(),
+    productId: text("product_id").notNull().references(() => catalogProducts.id, { onDelete: "cascade" }),
+    sku: text("sku").notNull(),
+    label: text("label").notNull(),
+    price: integer("price"),
+    stock: integer("stock").notNull().default(0),
+    active: integer("active", { mode: "boolean" }).notNull().default(true),
+    createdAt: text("created_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+    updatedAt: text("updated_at").notNull().default(sql`CURRENT_TIMESTAMP`),
+  },
+  (table) => [
+    uniqueIndex("catalog_product_variants_sku_unique").on(table.sku),
+    index("catalog_product_variants_product_idx").on(table.productId, table.active),
+  ],
+);
+
 export const campaigns = sqliteTable("campaigns", {
   id: text("id").primaryKey(),
   name: text("name").notNull(),
@@ -146,6 +165,9 @@ export const orderItems = sqliteTable(
     id: text("id").primaryKey(),
     orderId: text("order_id").notNull().references(() => orders.id, { onDelete: "cascade" }),
     productId: text("product_id").notNull().references(() => catalogProducts.id),
+    variantId: text("variant_id").references(() => catalogProductVariants.id, { onDelete: "set null" }),
+    variantSku: text("variant_sku"),
+    variantLabel: text("variant_label"),
     sku: text("sku").notNull(),
     name: text("name").notNull(),
     unitPrice: integer("unit_price").notNull(),

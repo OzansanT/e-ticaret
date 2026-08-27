@@ -12,6 +12,10 @@ type CheckoutProduct = {
   name: string;
   price: number;
   stock: number;
+  variant_count: number;
+  variant_id: string | null;
+  variant_sku: string | null;
+  variant_label: string | null;
 };
 
 type CouponRow = {
@@ -32,9 +36,11 @@ export async function POST(request: Request) {
   const input = parsed.data;
   const user = await getChatGPTUser();
   const email = (user?.email ?? input.email).trim().toLowerCase();
-  const grouped = new Map<string, number>();
+  const grouped = new Map<string, { productId: string; variantId?: string; quantity: number }>();
   for (const line of input.lines) {
-    grouped.set(line.productId, Math.min(20, (grouped.get(line.productId) ?? 0) + line.quantity));
+    const key = `${line.productId}::${line.variantId ?? ""}`;
+    const current = grouped.get(key);
+    grouped.set(key, { productId: line.productId, ...(line.variantId ? { variantId: line.variantId } : {}), quantity: Math.min(20, (current?.quantity ?? 0) + line.quantity) });
   }
 
   try {
@@ -64,19 +70,39 @@ export async function POST(request: Request) {
         replayed: true,
       });
     }
-    const requestedLines = [...grouped.entries()].map(([productId, quantity]) => ({ productId, quantity }));
+    const requestedLines = [...grouped.values()];
     const productResults = await db.batch(
       requestedLines.map((line) => db.prepare(`
-        SELECT id, sku, name, price, stock
-        FROM catalog_products WHERE id = ? AND active = 1 LIMIT 1
-      `).bind(line.productId)),
+        SELECT catalog_products.id, catalog_products.sku, catalog_products.name,
+               COALESCE(catalog_product_variants.price, catalog_products.price) AS price,
+               CASE
+                 WHEN (SELECT COUNT(*) FROM catalog_product_variants AS active_variants WHERE active_variants.product_id = catalog_products.id AND active_variants.active = 1) > 0
+                 THEN COALESCE(catalog_product_variants.stock, -1)
+                 ELSE catalog_products.stock
+               END AS stock,
+               (SELECT COUNT(*) FROM catalog_product_variants AS active_variants WHERE active_variants.product_id = catalog_products.id AND active_variants.active = 1) AS variant_count,
+               catalog_product_variants.id AS variant_id,
+               catalog_product_variants.sku AS variant_sku,
+               catalog_product_variants.label AS variant_label
+        FROM catalog_products
+        LEFT JOIN catalog_product_variants
+          ON catalog_product_variants.product_id = catalog_products.id
+         AND catalog_product_variants.id = ?
+         AND catalog_product_variants.active = 1
+        WHERE catalog_products.id = ? AND catalog_products.active = 1 LIMIT 1
+      `).bind(line.variantId ?? "", line.productId)),
     );
     const selectedProducts = productResults.map((result, index) => ({
       product: result.results[0] as unknown as CheckoutProduct | undefined,
       quantity: requestedLines[index].quantity,
     }));
 
-    if (selectedProducts.some(({ product, quantity }) => !product || product.stock < quantity)) {
+    if (selectedProducts.some(({ product, quantity }, index) =>
+      !product ||
+      product.stock < quantity ||
+      (product.variant_count > 0 && !product.variant_id) ||
+      (product.variant_count === 0 && Boolean(requestedLines[index].variantId))
+    )) {
       return NextResponse.json({ error: "Lorem ipsum dolor sit amet consectetur." }, { status: 409 });
     }
 
@@ -197,12 +223,23 @@ export async function POST(request: Request) {
     for (const { product, quantity } of selectedProducts) {
       statements.push(
         db.prepare(`
-          INSERT INTO order_items (id, order_id, product_id, sku, name, unit_price, quantity)
-          VALUES (?, ?, ?, ?, ?, ?, ?)
-        `).bind(crypto.randomUUID(), orderId, product!.id, product!.sku, product!.name, product!.price, quantity),
+          INSERT INTO order_items (
+            id, order_id, product_id, variant_id, variant_sku, variant_label,
+            sku, name, unit_price, quantity
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        `).bind(
+          crypto.randomUUID(), orderId, product!.id, product!.variant_id,
+          product!.variant_sku, product!.variant_label, product!.sku,
+          product!.name, product!.price, quantity,
+        ),
         db.prepare("UPDATE catalog_products SET stock = stock - ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?")
           .bind(quantity, product!.id),
       );
+      if (product!.variant_id) {
+        statements.push(db.prepare(`
+          UPDATE catalog_product_variants SET stock = stock - ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?
+        `).bind(quantity, product!.variant_id));
+      }
     }
     if (input.address.save) {
       statements.push(db.prepare(`

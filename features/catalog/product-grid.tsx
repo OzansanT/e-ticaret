@@ -53,7 +53,7 @@ export function ProductGrid({ products }: { products: Product[] }) {
               <strong>{formatPrice(product.price)}</strong>
             </div>
             <Button
-              onClick={() => cart.add(product)}
+              onClick={() => product.variants?.length ? window.location.assign(`/products/${product.slug}`) : cart.add(product)}
               aria-label={`Add ${product.shortName}`}
               disabled={product.stock === 0}
             >

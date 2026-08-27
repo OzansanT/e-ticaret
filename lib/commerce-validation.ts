@@ -2,6 +2,7 @@ import { z } from "zod";
 
 export const cartLineSchema = z.object({
   productId: z.string().min(1).max(80),
+  variantId: z.string().min(1).max(80).optional(),
   quantity: z.number().int().min(1).max(20),
 });
 
@@ -60,6 +61,16 @@ export const productAdminSchema = z.object({
   active: z.boolean().default(true),
 });
 
+export const variantAdminSchema = z.object({
+  id: z.string().regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/).max(80),
+  productId: z.string().min(1).max(80),
+  sku: z.string().trim().min(1).max(80),
+  label: z.string().trim().min(1).max(80),
+  price: z.number().int().min(0).max(10_000_000).nullable(),
+  stock: z.number().int().min(0).max(1_000_000),
+  active: z.boolean().default(true),
+});
+
 export const campaignAdminSchema = z.object({
   id: z.string().min(1).max(80),
   name: z.string().trim().min(2).max(120),
@@ -110,6 +121,7 @@ export const orderCustomerActionSchema = z.object({
 
 export const adminActionSchema = z.discriminatedUnion("action", [
   z.object({ action: z.literal("product"), product: productAdminSchema }),
+  z.object({ action: z.literal("variant"), variant: variantAdminSchema }),
   z.object({ action: z.literal("campaign"), campaign: campaignAdminSchema }),
   z.object({ action: z.literal("coupon"), coupon: couponAdminSchema }),
   z.object({ action: z.literal("shipping"), shipping: shippingAdminSchema }),
