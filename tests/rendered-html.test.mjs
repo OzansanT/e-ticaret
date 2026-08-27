@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-test("renders the Turkish Dr. Animal storefront metadata", async () => {
+test("renders the brandless Lorem Ipsum storefront metadata", async () => {
   const workerUrl = new URL("../dist/server/index.js", import.meta.url);
   workerUrl.searchParams.set("test", `${process.pid}-${Date.now()}`);
   const { default: worker } = await import(workerUrl.href);
@@ -16,7 +16,7 @@ test("renders the Turkish Dr. Animal storefront metadata", async () => {
   assert.equal(response.status, 200);
   assert.match(response.headers.get("content-type") ?? "", /^text\/html\b/i);
   assert.match(html, /<html[^>]*lang=["']tr["']/i);
-  assert.match(html, /<title>Dr\. Animal \| Günlük Pet Bakım Ürünleri<\/title>/i);
-  assert.match(html, /Onların iyi hali/i);
-  assert.doesNotMatch(html, /Starter Project|codex-preview/i);
+  assert.match(html, /<title>Lorem Ipsum \| Dolor Sit Amet<\/title>/i);
+  assert.match(html, /Lorem ipsum/i);
+  assert.doesNotMatch(html, /Starter Project|codex-preview|Dr\. Animal|HOCl/i);
 });

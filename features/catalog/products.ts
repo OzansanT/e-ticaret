@@ -1,8 +1,8 @@
 export type ProductCategory =
-  | "Günlük Bakım"
-  | "Ağız & Diş"
-  | "Göz & Kulak"
-  | "Deri & Tüy";
+  | "Lorem Ipsum"
+  | "Dolor Sit"
+  | "Amet Elit"
+  | "Tempor Incididunt";
 
 export type Product = {
   id: string;
@@ -18,71 +18,71 @@ export type Product = {
 };
 
 export const categories = [
-  "Tümü",
-  "Günlük Bakım",
-  "Ağız & Diş",
-  "Göz & Kulak",
-  "Deri & Tüy",
+  "Lorem",
+  "Lorem Ipsum",
+  "Dolor Sit",
+  "Amet Elit",
+  "Tempor Incididunt",
 ] as const;
 
 export type Category = (typeof categories)[number];
 
 export const products: Product[] = [
   {
-    id: "hocl-75",
-    name: "HOCl Günlük Bakım Solüsyonu",
-    shortName: "HOCl Mini",
-    size: "75 ml",
+    id: "lorem-01",
+    name: "Lorem Ipsum Dolor Sit Amet",
+    shortName: "Lorem 01",
+    size: "Lorem 01",
     price: 134,
-    category: "Günlük Bakım",
-    eyebrow: "Deneme Boyu",
-    description: "Çantada taşımaya uygun, pratik günlük bakım boyu.",
+    category: "Lorem Ipsum",
+    eyebrow: "Lorem Ipsum",
+    description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
     accent: "#ff7b00",
   },
   {
-    id: "hocl-100",
-    name: "HOCl Çok Amaçlı Bakım Solüsyonu",
-    shortName: "HOCl Core",
-    size: "100 ml",
+    id: "lorem-02",
+    name: "Consectetur Adipiscing Elit",
+    shortName: "Lorem 02",
+    size: "Lorem 02",
     price: 170,
-    category: "Ağız & Diş",
-    eyebrow: "En Çok Tercih Edilen",
-    description: "Düzenli bakım rutini için dengeli temel boy.",
+    category: "Dolor Sit",
+    eyebrow: "Dolor Sit Amet",
+    description: "Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.",
     accent: "#0d5c45",
-    badge: "Popüler",
+    badge: "Lorem",
   },
   {
-    id: "hocl-150",
-    name: "HOCl Göz & Kulak Bakım Solüsyonu",
-    shortName: "HOCl Plus",
-    size: "150 ml",
+    id: "lorem-03",
+    name: "Sed Do Eiusmod Tempor",
+    shortName: "Lorem 03",
+    size: "Lorem 03",
     price: 231,
-    category: "Göz & Kulak",
-    eyebrow: "Avantajlı Boy",
-    description: "Evdeki düzenli göz ve kulak bakım rutinlerine uygun.",
+    category: "Amet Elit",
+    eyebrow: "Amet Consectetur",
+    description: "Ut enim ad minim veniam, quis nostrud exercitation ullamco.",
     accent: "#2f7f91",
   },
   {
-    id: "hocl-250",
-    name: "HOCl Deri & Tüy Bakım Solüsyonu",
-    shortName: "HOCl Family",
-    size: "250 ml",
+    id: "lorem-04",
+    name: "Incididunt Ut Labore Dolore",
+    shortName: "Lorem 04",
+    size: "Lorem 04",
     price: 325,
-    category: "Deri & Tüy",
-    eyebrow: "Aile Boyu",
-    description: "Birden fazla evcil hayvanı olan evler için yüksek hacim.",
+    category: "Tempor Incididunt",
+    eyebrow: "Tempor Incididunt",
+    description: "Duis aute irure dolor in reprehenderit in voluptate velit esse.",
     accent: "#7851a9",
-    badge: "En Avantajlı",
+    badge: "Ipsum",
   },
   {
-    id: "hocl-500",
-    name: "HOCl Profesyonel Bakım Solüsyonu",
-    shortName: "HOCl Pro",
-    size: "500 ml",
+    id: "lorem-05",
+    name: "Excepteur Sint Occaecat",
+    shortName: "Lorem 05",
+    size: "Lorem 05",
     price: 501,
-    category: "Günlük Bakım",
-    eyebrow: "Profesyonel Boy",
-    description: "Yoğun kullanım ve uzun bakım döngüsü için büyük boy.",
+    category: "Lorem Ipsum",
+    eyebrow: "Excepteur Sint",
+    description: "Sunt in culpa qui officia deserunt mollit anim id est laborum.",
     accent: "#292929",
   },
 ];

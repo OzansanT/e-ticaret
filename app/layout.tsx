@@ -2,9 +2,9 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Dr. Animal | Günlük Pet Bakım Ürünleri",
+  title: "Lorem Ipsum | Dolor Sit Amet",
   description:
-    "Kedi ve köpekler için veteriner yaklaşımıyla geliştirilen günlük bakım ürünlerini keşfedin.",
+    "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt.",
   manifest: "/manifest.webmanifest",
   icons: {
     icon: "/favicon.svg",

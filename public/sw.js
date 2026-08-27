@@ -1,9 +1,8 @@
-const CACHE_VERSION = "dr-animal-store-v1";
+const CACHE_VERSION = "lorem-store-v2";
 const APP_SHELL = [
   "/",
   "/manifest.webmanifest",
   "/favicon.svg",
-  "/dr-animal-storefront-hero.webp",
 ];
 
 self.addEventListener("install", (event) => {

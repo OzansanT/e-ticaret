@@ -15,6 +15,7 @@
   .hero-copy { padding: 50px 28px 30px; }
   .hero-copy h1 { font-size: clamp(46px, 14vw, 70px); }
   .hero-visual { min-height: 390px; }
+  .hero-composition { inset: 48px 28px 34px; }
   .hero-visual::after { background: linear-gradient(180deg, var(--orange) 0%, transparent 25%); }
   .hero-proof { margin-top: 28px; gap: 18px; }
   .mobile-categories { max-width: 100%; padding: 22px 18px 2px; display: flex; gap: 8px; overflow-x: auto; scrollbar-width: none; }
@@ -38,6 +39,8 @@
   .hero-copy { padding-inline: 22px; }
   .hero-actions { align-items: stretch; flex-direction: column; }
   .hero-visual { min-height: 320px; }
+  .hero-composition { inset: 45px 18px 30px; gap: 8px; }
+  .hero-composition span { border-radius: 18px; }
   .hero-stamp { right: 18px; top: 16px; width: 90px; height: 90px; }
   .hero-proof { flex-direction: column; gap: 10px; }
   .section-heading { flex-direction: column; }
