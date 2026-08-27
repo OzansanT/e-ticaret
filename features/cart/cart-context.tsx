@@ -27,7 +27,7 @@ type CartContextValue = {
   clear: () => void;
 };
 
-const STORAGE_KEY = "dr-animal-cart-v1";
+const STORAGE_KEY = "e-commerce-cart-v2";
 const CartContext = createContext<CartContextValue | null>(null);
 
 export function CartProvider({ children }: { children: ReactNode }) {
@@ -72,7 +72,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       ...current,
       [product.id]: Math.min((current[product.id] ?? 0) + 1, 20),
     }));
-    toast.success(`${product.shortName} sepete eklendi`);
+    toast.success(`${product.shortName} — lorem ipsum`);
   }, []);
 
   const decrease = useCallback((productId: string) => {

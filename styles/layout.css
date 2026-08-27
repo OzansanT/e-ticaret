@@ -9,5 +9,5 @@
 .catalog-section { min-width: 0; }
 .category-rail, .campaign-aside { position: sticky; top: 20px; }
 .site-footer { max-width: calc(var(--content) - 56px); margin: 70px auto 24px; padding: 44px; border-radius: var(--radius-lg); background: var(--ink); color: var(--white); display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 36px; position: relative; overflow: hidden; }
-.site-footer::after { content: "DA"; position: absolute; right: -25px; bottom: -72px; color: rgb(255 255 255 / 4%); font-size: 210px; font-weight: 900; letter-spacing: -.1em; }
+.site-footer::after { content: "LOREM"; position: absolute; right: -25px; bottom: -58px; color: rgb(255 255 255 / 4%); font-size: 150px; font-weight: 900; letter-spacing: -.1em; }
 .footer-note { grid-column: 1 / -1; margin: 24px 0 0; padding-top: 24px; border-top: 1px solid rgb(255 255 255 / 14%); color: #aeb7b3; font-size: 12px; }

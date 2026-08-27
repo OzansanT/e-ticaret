@@ -20,25 +20,25 @@ export function CartSheet() {
   return (
     <Sheet>
       <SheetTrigger asChild>
-        <Button className="cart-trigger" aria-label={`Sepet, ${cart.itemCount} ürün`}>
+        <Button className="cart-trigger" aria-label={`Cart, ${cart.itemCount} items`}>
           <ShoppingBag aria-hidden="true" />
-          <span>Sepet</span>
+          <span>Lorem</span>
           <strong>{cart.itemCount}</strong>
         </Button>
       </SheetTrigger>
       <SheetContent className="cart-sheet" aria-describedby="cart-description">
         <SheetHeader className="cart-sheet__header">
-          <SheetTitle>Sepetiniz</SheetTitle>
+          <SheetTitle>Lorem ipsum</SheetTitle>
           <SheetDescription id="cart-description">
-            En iyi uygun kampanya otomatik olarak uygulanır.
+            Dolor sit amet, consectetur adipiscing elit.
           </SheetDescription>
         </SheetHeader>
 
         {cart.lines.length === 0 ? (
           <div className="cart-empty">
             <ShoppingBag aria-hidden="true" />
-            <h3>Sepetiniz keşfe hazır</h3>
-            <p>Bakım rutininize uygun bir ürün ekleyerek başlayın.</p>
+            <h3>Lorem ipsum dolor sit amet</h3>
+            <p>Consectetur adipiscing elit, sed do eiusmod tempor.</p>
           </div>
         ) : (
           <div className="cart-lines">
@@ -48,19 +48,19 @@ export function CartSheet() {
                 <div>
                   <strong>{product.shortName}</strong>
                   <span>{product.size}</span>
-                  <div className="quantity-control" aria-label={`${product.shortName} adedi`}>
-                    <button onClick={() => cart.decrease(product.id)} aria-label="Bir azalt">
+                  <div className="quantity-control" aria-label={`${product.shortName} quantity`}>
+                    <button onClick={() => cart.decrease(product.id)} aria-label="Decrease quantity">
                       <Minus aria-hidden="true" />
                     </button>
                     <output>{quantity}</output>
-                    <button onClick={() => cart.add(product)} aria-label="Bir artır">
+                    <button onClick={() => cart.add(product)} aria-label="Increase quantity">
                       <Plus aria-hidden="true" />
                     </button>
                   </div>
                 </div>
                 <div className="cart-line__price">
                   <strong>{formatPrice(product.price * quantity)}</strong>
-                  <button onClick={() => cart.remove(product.id)} aria-label={`${product.shortName} ürününü sil`}>
+                  <button onClick={() => cart.remove(product.id)} aria-label={`Remove ${product.shortName}`}>
                     <Trash2 aria-hidden="true" />
                   </button>
                 </div>
@@ -78,13 +78,13 @@ export function CartSheet() {
               </div>
               <p className="discount-note">{cart.campaign.message}</p>
               <div className="total-row">
-                <span>Toplam</span>
+                <span>Lorem ipsum</span>
                 <strong>{formatPrice(cart.total)}</strong>
               </div>
               <Button className="checkout-button" disabled>
-                Güvenli ödeme yakında
+                Dolor sit amet
               </Button>
-              <button className="clear-cart" onClick={cart.clear}>Sepeti temizle</button>
+              <button className="clear-cart" onClick={cart.clear}>Consectetur elit</button>
             </>
           )}
         </SheetFooter>

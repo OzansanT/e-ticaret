@@ -54,3 +54,18 @@ test("ships an installable offline storefront shell", async () => {
   assert.match(worker, /request\.mode === "navigate"/);
   assert.match(registration, /serviceWorker\.register\("\/sw\.js"/);
 });
+
+test("keeps customer-facing source brandless and free of pet copy", async () => {
+  const files = await Promise.all([
+    source("app/layout.tsx"),
+    source("features/storefront/storefront.tsx"),
+    source("features/catalog/products.ts"),
+    source("features/catalog/product-grid.tsx"),
+    source("features/cart/cart-sheet.tsx"),
+    source("public/manifest.webmanifest"),
+  ]);
+  const customerSource = files.join("\n");
+
+  assert.doesNotMatch(customerSource, /Dr\.?\s*Animal|HOCl|veteriner|kedi|köpek|pet care/i);
+  assert.match(customerSource, /Lorem ipsum/i);
+});

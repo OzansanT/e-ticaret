@@ -6,9 +6,9 @@
 export function selectBestCampaign(unitPrices, subtotal) {
   const candidates = [
     {
-      name: "Sepette %10",
+      name: "Lorem ipsum %10",
       discount: subtotal * 0.1,
-      message: "Tüm sepete %10 indirim uygulandı.",
+      message: "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
     },
   ];
 
@@ -16,35 +16,35 @@ export function selectBestCampaign(unitPrices, subtotal) {
     const sorted = [...unitPrices].sort((a, b) => a - b);
     const discountedItems = sorted.filter((_, index) => index % 2 === 0);
     candidates.push({
-      name: "2. üründe %25",
+      name: "Dolor sit amet %25",
       discount:
         discountedItems.reduce((sum, price) => sum + price, 0) * 0.25,
-      message: "Her ürün çiftindeki uygun fiyatlı ürüne %25 indirim uygulandı.",
+      message: "Sed do eiusmod tempor incididunt ut labore et dolore.",
     });
   }
 
   if (subtotal >= 600) {
     candidates.push({
-      name: "600 TL üzeri 50 TL",
+      name: "Consectetur 50",
       discount: 50,
-      message: "600 TL üzeri alışveriş indirimi uygulandı.",
+      message: "Ut enim ad minim veniam, quis nostrud exercitation.",
     });
   }
 
   if (unitPrices.length >= 3) {
     candidates.push({
-      name: "3 ürün al %20",
+      name: "Adipiscing elit %20",
       discount: subtotal * 0.2,
-      message: "Üç veya daha fazla ürüne %20 indirim uygulandı.",
+      message: "Duis aute irure dolor in reprehenderit voluptate.",
     });
   }
 
   if (unitPrices.length >= 4) {
     const sorted = [...unitPrices].sort((a, b) => a - b);
     candidates.push({
-      name: "4 al 2 öde",
+      name: "Eiusmod tempor 4/2",
       discount: sorted[0] + sorted[1],
-      message: "Sepetteki en uygun iki ürün hediye edildi.",
+      message: "Excepteur sint occaecat cupidatat non proident.",
     });
   }
 

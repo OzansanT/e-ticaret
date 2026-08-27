@@ -11,8 +11,8 @@ export function ProductGrid({ products }: { products: Product[] }) {
   if (products.length === 0) {
     return (
       <div className="catalog-empty">
-        <h3>Bu aramada ürün bulunamadı.</h3>
-        <p>Başka bir kategori veya daha kısa bir arama deneyin.</p>
+        <h3>Lorem ipsum dolor sit amet.</h3>
+        <p>Consectetur adipiscing elit, sed do eiusmod tempor.</p>
       </div>
     );
   }
@@ -32,8 +32,8 @@ export function ProductGrid({ products }: { products: Product[] }) {
           <div className="product-card__visual">
             <span className="product-card__number">0{index + 1}</span>
             <div className="product-card__label">
-              <small>DR. ANIMAL</small>
-              <strong>HOCl</strong>
+              <small>LOREM IPSUM</small>
+              <strong>Dolor</strong>
               <span>{product.size}</span>
             </div>
           </div>
@@ -42,21 +42,21 @@ export function ProductGrid({ products }: { products: Product[] }) {
             <h3>{product.name}</h3>
             <p>{product.description}</p>
             <ul>
-              <li><Check aria-hidden="true" /> Günlük kullanıma uygun</li>
-              <li><Check aria-hidden="true" /> Pratik bakım rutini</li>
+              <li><Check aria-hidden="true" /> Lorem ipsum dolor sit</li>
+              <li><Check aria-hidden="true" /> Amet consectetur elit</li>
             </ul>
           </div>
           <div className="product-card__footer">
             <div>
-              <small>Liste fiyatı</small>
+              <small>Lorem ipsum</small>
               <strong>{formatPrice(product.price)}</strong>
             </div>
-            <Button onClick={() => cart.add(product)} aria-label={`${product.shortName} sepete ekle`}>
-              <Plus aria-hidden="true" /> Sepete ekle
+            <Button onClick={() => cart.add(product)} aria-label={`Add ${product.shortName}`}>
+              <Plus aria-hidden="true" /> Lorem ipsum
             </Button>
           </div>
           <a className="product-card__details" href="#bakim-rehberi">
-            Bakım alanını keşfet <ArrowRight aria-hidden="true" />
+            Dolor sit amet <ArrowRight aria-hidden="true" />
           </a>
         </article>
       ))}

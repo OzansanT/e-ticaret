@@ -1,7 +1,7 @@
 {
-  "name": "Dr. Animal E-Ticaret",
-  "short_name": "Dr. Animal",
-  "description": "Kedi ve köpekler için günlük bakım ürünleri mağazası.",
+  "name": "Lorem Ipsum",
+  "short_name": "Lorem",
+  "description": "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
   "lang": "tr",
   "start_url": "/",
   "scope": "/",
