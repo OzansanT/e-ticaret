@@ -11,6 +11,7 @@ import {
 } from "react";
 import { toast } from "sonner";
 import { products, type Product } from "@/features/catalog/products";
+import { selectBestCampaign } from "./campaigns";
 
 type CartLine = { product: Product; quantity: number };
 type Campaign = { name: string; discount: number; message: string };
@@ -28,46 +29,6 @@ type CartContextValue = {
 
 const STORAGE_KEY = "dr-animal-cart-v1";
 const CartContext = createContext<CartContextValue | null>(null);
-
-function calculateCampaign(lines: CartLine[], subtotal: number): Campaign {
-  const units = lines.flatMap(({ product, quantity }) =>
-    Array.from({ length: quantity }, () => product.price),
-  );
-  const candidates: Campaign[] = [
-    {
-      name: "Sepette %10",
-      discount: subtotal * 0.1,
-      message: "Tüm sepete %10 indirim uygulandı.",
-    },
-  ];
-
-  if (subtotal >= 600) {
-    candidates.push({
-      name: "600 TL üzeri 50 TL",
-      discount: 50,
-      message: "600 TL üzeri alışveriş indirimi uygulandı.",
-    });
-  }
-  if (units.length >= 3) {
-    candidates.push({
-      name: "3 ürün al %20",
-      discount: subtotal * 0.2,
-      message: "Üç veya daha fazla ürüne %20 indirim uygulandı.",
-    });
-  }
-  if (units.length >= 4) {
-    const sorted = [...units].sort((a, b) => a - b);
-    candidates.push({
-      name: "4 al 2 öde",
-      discount: sorted[0] + sorted[1],
-      message: "Sepetteki en uygun iki ürün hediye edildi.",
-    });
-  }
-
-  return candidates.reduce((best, item) =>
-    item.discount > best.discount ? item : best,
-  );
-}
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [quantities, setQuantities] = useState<Record<string, number>>({});
@@ -142,7 +103,10 @@ export function CartProvider({ children }: { children: ReactNode }) {
       (sum, line) => sum + line.product.price * line.quantity,
       0,
     );
-    const campaign = calculateCampaign(lines, subtotal);
+    const unitPrices = lines.flatMap(({ product, quantity }) =>
+      Array.from({ length: quantity }, () => product.price),
+    );
+    const campaign: Campaign = selectBestCampaign(unitPrices, subtotal);
 
     return {
       lines,
