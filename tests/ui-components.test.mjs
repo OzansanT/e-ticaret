@@ -37,3 +37,20 @@ test("includes the approved five-step price ladder", async () => {
     assert.match(catalog, new RegExp(`price: ${price}`));
   }
 });
+
+test("ships an installable offline storefront shell", async () => {
+  const [manifestText, worker, registration] = await Promise.all([
+    source("public/manifest.webmanifest"),
+    source("public/sw.js"),
+    source("features/pwa/pwa-register.tsx"),
+  ]);
+  const manifest = JSON.parse(manifestText);
+
+  assert.equal(manifest.display, "standalone");
+  assert.equal(manifest.lang, "tr");
+  assert.equal(manifest.icons.length, 1);
+  assert.equal(manifest.icons[0].sizes, "any");
+  assert.match(worker, /const APP_SHELL/);
+  assert.match(worker, /request\.mode === "navigate"/);
+  assert.match(registration, /serviceWorker\.register\("\/sw\.js"/);
+});
